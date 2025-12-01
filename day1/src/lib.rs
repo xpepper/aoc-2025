@@ -85,7 +85,7 @@ pub fn solve(input: &str) -> u32 {
     zero_count
 }
 
-fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation) -> ()) {
+fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation)) {
     for line in input.lines() {
         if line.trim().is_empty() {
             continue;
