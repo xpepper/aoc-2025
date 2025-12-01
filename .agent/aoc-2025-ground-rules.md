@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Advent of Code 2025 - Ground Rules
 
 ## TDD Approach
