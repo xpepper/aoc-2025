@@ -85,6 +85,17 @@ pub fn solve(input: &str) -> u32 {
     zero_count
 }
 
+pub fn solve_part2(input: &str) -> u32 {
+    let mut safe = Safe::default();
+    let mut total_crossings = 0;
+
+    parse_and_iterate(input, |rotation| {
+        total_crossings += safe.rotate(rotation.direction, rotation.distance);
+    });
+
+    total_crossings
+}
+
 fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation)) {
     for line in input.lines() {
         if line.trim().is_empty() {
@@ -95,17 +106,6 @@ fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation)) {
         let rotation = parse_rotation(line.trim()).unwrap();
         processor(rotation);
     }
-}
-
-pub fn solve_part2(input: &str) -> u32 {
-    let mut safe = Safe::default();
-    let mut total_crossings = 0;
-
-    parse_and_iterate(input, |rotation| {
-        total_crossings += safe.rotate(rotation.direction, rotation.distance);
-    });
-
-    total_crossings
 }
 
 #[cfg(test)]
