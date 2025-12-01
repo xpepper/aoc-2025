@@ -72,7 +72,7 @@ impl Safe {
 }
 
 pub fn solve(input: &str) -> u32 {
-    let mut safe = Safe::new();
+    let mut safe = Safe::default();
     let mut zero_count = 0;
 
     parse_and_iterate(input, |rotation| {
@@ -84,8 +84,6 @@ pub fn solve(input: &str) -> u32 {
 
     zero_count
 }
-
-
 
 fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation) -> ()) {
     for line in input.lines() {
@@ -100,7 +98,7 @@ fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation) -> ()) {
 }
 
 pub fn solve_part2(input: &str) -> u32 {
-    let mut safe = Safe::new();
+    let mut safe = Safe::default();
     let mut total_crossings = 0;
 
     parse_and_iterate(input, |rotation| {
@@ -130,20 +128,20 @@ mod tests {
 
     #[test]
     fn dial_starts_at_50() {
-        let safe = Safe::new();
+        let safe = Safe::default();
         assert_eq!(safe.position, 50);
     }
 
     #[test]
     fn rotate_left_no_wrap() {
-        let mut safe = Safe::new();
+        let mut safe = Safe::default();
         safe.rotate(Direction::Left, 10);
         assert_eq!(safe.position, 40);
     }
 
     #[test]
     fn rotate_left_with_wrap() {
-        let mut safe = Safe::new();
+        let mut safe = Safe::default();
         safe.position = 5;
         safe.rotate(Direction::Left, 10);
         assert_eq!(safe.position, 95);
@@ -151,14 +149,14 @@ mod tests {
 
     #[test]
     fn rotate_right_no_wrap() {
-        let mut safe = Safe::new();
+        let mut safe = Safe::default();
         safe.rotate(Direction::Right, 10);
         assert_eq!(safe.position, 60);
     }
 
     #[test]
     fn rotate_right_with_wrap() {
-        let mut safe = Safe::new();
+        let mut safe = Safe::default();
         safe.position = 95;
         safe.rotate(Direction::Right, 10);
         assert_eq!(safe.position, 5);
@@ -172,7 +170,7 @@ mod tests {
 
     #[test]
     fn rotate_right_counts_zeros() {
-        let mut safe = Safe::new(); // 50
+        let mut safe = Safe::default(); // 50
         let crossings = safe.rotate(Direction::Right, 1000);
         assert_eq!(crossings, 10);
         assert_eq!(safe.position, 50);
@@ -180,7 +178,7 @@ mod tests {
 
     #[test]
     fn rotate_left_counts_zeros() {
-        let mut safe = Safe::new(); // 50
+        let mut safe = Safe::default(); // 50
         // 50 -> 0 (needs 50)
         // Then 9 full rotations (900)
         // Total 950
@@ -194,8 +192,6 @@ mod tests {
         let input = "L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82";
         assert_eq!(solve_part2(input), 6);
     }
-
-
 
     #[test]
     fn solve_counts_zero_positions_not_crossings() {
