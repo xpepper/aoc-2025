@@ -92,7 +92,7 @@ pub fn solve(input: &str) -> u32 {
     zero_count
 }
 
-pub fn solve_part2(input: &str) -> u32 {
+pub fn process_rotations(input: &str) -> (u32, u32) {
     let mut safe = Safe::new();
     let mut total_crossings = 0;
 
@@ -106,7 +106,12 @@ pub fn solve_part2(input: &str) -> u32 {
         total_crossings += safe.rotate(rotation.direction, rotation.distance);
     }
 
-    total_crossings
+    (total_crossings, safe.position)
+}
+
+pub fn solve_part2(input: &str) -> u32 {
+    let (crossings, _) = process_rotations(input);
+    crossings
 }
 
 #[cfg(test)]
@@ -192,5 +197,22 @@ mod tests {
     fn solve_part2_example() {
         let input = "L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82";
         assert_eq!(solve_part2(input), 6);
+    }
+
+    #[test]
+    fn process_rotations_returns_crossings_and_final_position() {
+        let input = "L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82";
+        let (crossings, final_position) = process_rotations(input);
+        assert_eq!(crossings, 6);
+        assert_eq!(final_position, 32);
+    }
+
+    #[test]
+    fn solve_counts_zero_positions_not_crossings() {
+        let input = "R50\nR50";
+        // After first R50: position 0 (zero_count = 1, crossings = 0)
+        // After second R50: position 50 (zero_count = 1, crossings = 1)
+        assert_eq!(solve(input), 1);
+        assert_eq!(solve_part2(input), 1);
     }
 }
