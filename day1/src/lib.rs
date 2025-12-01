@@ -75,27 +75,19 @@ pub fn solve(input: &str) -> u32 {
     let mut safe = Safe::new();
     let mut zero_count = 0;
 
-    for line in input.lines() {
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        // We unwrap here because the input is guaranteed to be valid in the puzzle
-        let rotation = parse_rotation(line.trim()).unwrap();
+    parse_and_iterate(input, |rotation| {
         safe.rotate(rotation.direction, rotation.distance);
-
         if safe.position == 0 {
             zero_count += 1;
         }
-    }
+    });
 
     zero_count
 }
 
-pub fn process_rotations(input: &str) -> (u32, u32) {
-    let mut safe = Safe::new();
-    let mut total_crossings = 0;
 
+
+fn parse_and_iterate(input: &str, mut processor: impl FnMut(Rotation) -> ()) {
     for line in input.lines() {
         if line.trim().is_empty() {
             continue;
@@ -103,15 +95,19 @@ pub fn process_rotations(input: &str) -> (u32, u32) {
 
         // We unwrap here because the input is guaranteed to be valid in the puzzle
         let rotation = parse_rotation(line.trim()).unwrap();
-        total_crossings += safe.rotate(rotation.direction, rotation.distance);
+        processor(rotation);
     }
-
-    (total_crossings, safe.position)
 }
 
 pub fn solve_part2(input: &str) -> u32 {
-    let (crossings, _) = process_rotations(input);
-    crossings
+    let mut safe = Safe::new();
+    let mut total_crossings = 0;
+
+    parse_and_iterate(input, |rotation| {
+        total_crossings += safe.rotate(rotation.direction, rotation.distance);
+    });
+
+    total_crossings
 }
 
 #[cfg(test)]
@@ -199,13 +195,7 @@ mod tests {
         assert_eq!(solve_part2(input), 6);
     }
 
-    #[test]
-    fn process_rotations_returns_crossings_and_final_position() {
-        let input = "L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82";
-        let (crossings, final_position) = process_rotations(input);
-        assert_eq!(crossings, 6);
-        assert_eq!(final_position, 32);
-    }
+
 
     #[test]
     fn solve_counts_zero_positions_not_crossings() {
