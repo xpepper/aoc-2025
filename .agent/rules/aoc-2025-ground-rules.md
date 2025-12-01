@@ -50,6 +50,11 @@ We follow strict Test-Driven Development with small, incremental steps:
 
 - Use conventional commit messages
 - Commit after each green phase (passing tests)
+- Commit every time you:
+  - Add a new feature
+  - Complete a single TDD cycle
+  - Get a green bar that confirms progress
+  - Do a refactor while tests are passing
 - Write clear commit messages describing what was added/changed
 - Keep commits small and focused on one behavior
 
