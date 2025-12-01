@@ -45,13 +45,27 @@ impl Safe {
         Self::default()
     }
 
-    pub fn rotate(&mut self, direction: Direction, distance: u32) {
+    pub fn rotate(&mut self, direction: Direction, distance: u32) -> u32 {
         match direction {
             Direction::Left => {
+                let dist_to_first = if self.position == 0 {
+                    100
+                } else {
+                    self.position
+                };
+
                 self.position = (self.position + 100 - (distance % 100)) % 100;
+
+                if distance < dist_to_first {
+                    0
+                } else {
+                    1 + (distance - dist_to_first) / 100
+                }
             }
             Direction::Right => {
+                let count = (self.position + distance) / 100;
                 self.position = (self.position + distance) % 100;
+                count
             }
         }
     }
@@ -76,6 +90,23 @@ pub fn solve(input: &str) -> u32 {
     }
 
     zero_count
+}
+
+pub fn solve_part2(input: &str) -> u32 {
+    let mut safe = Safe::new();
+    let mut total_crossings = 0;
+
+    for line in input.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        // We unwrap here because the input is guaranteed to be valid in the puzzle
+        let rotation = parse_rotation(line.trim()).unwrap();
+        total_crossings += safe.rotate(rotation.direction, rotation.distance);
+    }
+
+    total_crossings
 }
 
 #[cfg(test)]
@@ -136,5 +167,30 @@ mod tests {
     fn solve_example() {
         let input = "L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82";
         assert_eq!(solve(input), 3);
+    }
+
+    #[test]
+    fn rotate_right_counts_zeros() {
+        let mut safe = Safe::new(); // 50
+        let crossings = safe.rotate(Direction::Right, 1000);
+        assert_eq!(crossings, 10);
+        assert_eq!(safe.position, 50);
+    }
+
+    #[test]
+    fn rotate_left_counts_zeros() {
+        let mut safe = Safe::new(); // 50
+        // 50 -> 0 (needs 50)
+        // Then 9 full rotations (900)
+        // Total 950
+        let crossings = safe.rotate(Direction::Left, 950);
+        assert_eq!(crossings, 10);
+        assert_eq!(safe.position, 0);
+    }
+
+    #[test]
+    fn solve_part2_example() {
+        let input = "L68\nL30\nR48\nL5\nR60\nL55\nL1\nL99\nR14\nL82";
+        assert_eq!(solve_part2(input), 6);
     }
 }
