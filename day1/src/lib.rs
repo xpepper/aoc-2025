@@ -34,9 +34,15 @@ pub struct Safe {
     pub position: u32,
 }
 
+impl Default for Safe {
+    fn default() -> Self {
+        Self { position: 50 }
+    }
+}
+
 impl Safe {
     pub fn new() -> Self {
-        Safe { position: 50 }
+        Self::default()
     }
 
     pub fn rotate(&mut self, direction: Direction, distance: u32) {
