@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn rotate_left_with_wrap() {
-        let mut safe = starts_at_position(5);
+        let mut safe = Safe { position: 5 };
         safe.rotate(Direction::Left, 10);
         assert_eq!(safe.position, 95);
     }
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn rotate_right_with_wrap() {
-        let mut safe = starts_at_position(95);
+        let mut safe = Safe { position: 95 };
         safe.rotate(Direction::Right, 10);
         assert_eq!(safe.position, 5);
     }
@@ -204,11 +204,5 @@ mod tests {
         let input = include_str!("../rotations.txt");
         assert_eq!(solve(input), 1055);
         assert_eq!(solve_part2(input), 6386);
-    }
-
-    fn starts_at_position(position: u32) -> Safe {
-        let mut safe = Safe::default();
-        safe.position = position;
-        safe
     }
 }
