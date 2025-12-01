@@ -205,4 +205,11 @@ mod tests {
         assert_eq!(solve(input), 1);
         assert_eq!(solve_part2(input), 1);
     }
+
+    #[test]
+    fn solve_with_rotations_txt_file() {
+        let input = include_str!("../rotations.txt");
+        assert_eq!(solve(input), 1055);
+        assert_eq!(solve_part2(input), 6386);
+    }
 }
