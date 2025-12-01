@@ -48,3 +48,35 @@ The dial points at 0 three times, so the password is **3**.
 ## Input Format
 
 The puzzle input contains one rotation per line in the format `L<n>` or `R<n>`.
+
+
+## Part 2: Method 0x434C49434B
+
+The security protocol has changed. Now we must count **every time** the dial points at 0, regardless of whether it happens during a rotation or at the end of one.
+
+### New Rules
+
+- Count every click that lands on 0
+- This includes passing through 0 during a rotation
+- Example: From 50, `R1000` would pass 0 ten times
+
+### Example
+
+Given the same rotations:
+```
+L68 L30 R48 L5 R60 L55 L1 L99 R14 L82
+```
+
+The zero crossings are:
+- L68 (50 -> 82): passes 0 **once**
+- L30 (82 -> 52): no zero crossing
+- R48 (52 -> 0): lands on 0 **once**
+- L5 (0 -> 95): no zero crossing
+- R60 (95 -> 55): passes 0 **once**
+- L55 (55 -> 0): lands on 0 **once**
+- L1 (0 -> 99): no zero crossing
+- L99 (99 -> 0): lands on 0 **once**
+- R14 (0 -> 14): no zero crossing
+- L82 (14 -> 32): passes 0 **once**
+
+Total count: **6**
