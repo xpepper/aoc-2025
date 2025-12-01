@@ -128,8 +128,7 @@ mod tests {
 
     #[test]
     fn dial_starts_at_50() {
-        let safe = Safe::default();
-        assert_eq!(safe.position, 50);
+        assert_eq!(Safe::default().position, 50);
     }
 
     #[test]
