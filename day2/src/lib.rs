@@ -34,6 +34,16 @@ pub fn parse_range(input: &str) -> Result<Range, String> {
     Ok(Range { start, end })
 }
 
+pub fn find_invalid_ids_in_range(range: &Range) -> Vec<u64> {
+    let mut invalid_ids = Vec::new();
+    for id in range.start..=range.end {
+        if is_invalid_id(id) {
+            invalid_ids.push(id);
+        }
+    }
+    invalid_ids
+}
+
 #[cfg(test)]
 
 mod tests {
@@ -64,5 +74,12 @@ mod tests {
         let range = parse_range("11-22").unwrap();
         assert_eq!(range.start, 11);
         assert_eq!(range.end, 22);
+    }
+
+    #[test]
+    fn finds_invalid_ids_in_range() {
+        let range = Range { start: 11, end: 22 };
+        let invalid_ids = find_invalid_ids_in_range(&range);
+        assert_eq!(invalid_ids, vec![11, 22]);
     }
 }
