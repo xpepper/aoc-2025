@@ -2,7 +2,7 @@ pub fn is_invalid_id(id: u64) -> bool {
     let s = id.to_string();
     let len = s.len();
 
-    if len % 2 != 0 {
+    if !len.is_multiple_of(2) {
         return false;
     }
 
