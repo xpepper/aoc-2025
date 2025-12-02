@@ -49,6 +49,10 @@ We follow strict Test-Driven Development with small, incremental steps:
 ## Commit Strategy
 
 - Use conventional commit messages
+  - `feat` when adding features or changing visible behaviour
+  - `refactor` when changing the structure without changing the behaviour
+  - `doc` when editing or adding documents
+  - `test` when editing or adding tests
 - Commit after each green phase (passing tests)
 - Commit every time you:
   - Add a new feature
