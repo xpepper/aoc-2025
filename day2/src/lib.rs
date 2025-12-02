@@ -79,6 +79,30 @@ pub fn solve(input: &str) -> u64 {
     total
 }
 
+pub fn find_invalid_ids_in_range_part2(range: &Range) -> Vec<u64> {
+    let mut invalid_ids = Vec::new();
+    for id in range.start..=range.end {
+        if is_invalid_id_part2(id) {
+            invalid_ids.push(id);
+        }
+    }
+    invalid_ids
+}
+
+pub fn solve_part2(input: &str) -> u64 {
+    let mut total = 0;
+
+    for range_str in input.split(',') {
+        let range_str = range_str.trim();
+        if let Ok(range) = parse_range(range_str) {
+            let invalid_ids = find_invalid_ids_in_range_part2(&range);
+            total += invalid_ids.iter().sum::<u64>();
+        }
+    }
+
+    total
+}
+
 #[cfg(test)]
 
 mod tests {
@@ -179,5 +203,21 @@ mod tests {
     #[test]
     fn part2_detects_triple_pattern() {
         assert!(is_invalid_id_part2(123123123)); // 123 repeated 3 times
+    }
+
+    #[test]
+    fn part2_finds_99_and_111_in_range_95_to_115() {
+        let range = Range {
+            start: 95,
+            end: 115,
+        };
+        let invalid_ids = find_invalid_ids_in_range_part2(&range);
+        assert_eq!(invalid_ids, vec![99, 111]);
+    }
+
+    #[test]
+    fn part2_solves_example() {
+        let input = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+        assert_eq!(solve_part2(input), 4174379265);
     }
 }
