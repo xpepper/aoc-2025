@@ -44,6 +44,20 @@ pub fn find_invalid_ids_in_range(range: &Range) -> Vec<u64> {
     invalid_ids
 }
 
+pub fn solve(input: &str) -> u64 {
+    let mut total = 0;
+
+    for range_str in input.split(',') {
+        let range_str = range_str.trim();
+        if let Ok(range) = parse_range(range_str) {
+            let invalid_ids = find_invalid_ids_in_range(&range);
+            total += invalid_ids.iter().sum::<u64>();
+        }
+    }
+
+    total
+}
+
 #[cfg(test)]
 
 mod tests {
@@ -111,5 +125,11 @@ mod tests {
         };
         let invalid_ids = find_invalid_ids_in_range(&range);
         assert_eq!(invalid_ids, Vec::<u64>::new());
+    }
+
+    #[test]
+    fn solves_example() {
+        let input = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
+        assert_eq!(solve(input), 1227775554);
     }
 }
