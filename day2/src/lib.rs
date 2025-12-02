@@ -82,4 +82,34 @@ mod tests {
         let invalid_ids = find_invalid_ids_in_range(&range);
         assert_eq!(invalid_ids, vec![11, 22]);
     }
+
+    #[test]
+    fn finds_99_in_range_95_to_115() {
+        let range = Range {
+            start: 95,
+            end: 115,
+        };
+        let invalid_ids = find_invalid_ids_in_range(&range);
+        assert_eq!(invalid_ids, vec![99]);
+    }
+
+    #[test]
+    fn finds_1010_in_range_998_to_1012() {
+        let range = Range {
+            start: 998,
+            end: 1012,
+        };
+        let invalid_ids = find_invalid_ids_in_range(&range);
+        assert_eq!(invalid_ids, vec![1010]);
+    }
+
+    #[test]
+    fn finds_no_invalid_ids_in_range_1698522_to_1698528() {
+        let range = Range {
+            start: 1698522,
+            end: 1698528,
+        };
+        let invalid_ids = find_invalid_ids_in_range(&range);
+        assert_eq!(invalid_ids, Vec::<u64>::new());
+    }
 }
