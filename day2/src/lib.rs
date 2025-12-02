@@ -17,21 +17,15 @@ pub fn is_invalid_id_part2(id: u64) -> bool {
     let s = id.to_string();
     let len = s.len();
 
-    // Try all possible substring lengths from 1 to len/2
-    for k in 1..=len / 2 {
-        // The length must be divisible by k
-        if len.is_multiple_of(k) {
+    // Try all possible pattern lengths from 1 to len/2
+    // Only consider lengths that divide the total string length
+    (1..=len / 2)
+        .filter(|&k| len.is_multiple_of(k))
+        .any(|k| {
             let pattern = &s[..k];
             let repetitions = len / k;
-
-            // Check if repeating the pattern matches the string
-            if pattern.repeat(repetitions) == s {
-                return true;
-            }
-        }
-    }
-
-    false
+            pattern.repeat(repetitions) == s
+        })
 }
 
 pub struct Range {
@@ -55,52 +49,46 @@ pub fn parse_range(input: &str) -> Result<Range, String> {
     Ok(Range { start, end })
 }
 
+pub fn find_ids_in_range<F>(range: &Range, validator: F) -> Vec<u64>
+where
+    F: Fn(u64) -> bool + Copy,
+{
+    (range.start..=range.end)
+        .filter(|&id| validator(id))
+        .collect()
+}
+
 pub fn find_invalid_ids_in_range(range: &Range) -> Vec<u64> {
-    let mut invalid_ids = Vec::new();
-    for id in range.start..=range.end {
-        if is_invalid_id(id) {
-            invalid_ids.push(id);
+    find_ids_in_range(range, is_invalid_id)
+}
+
+pub fn solve_with_validator<F>(input: &str, validator: F) -> u64
+where
+    F: Fn(u64) -> bool + Copy,
+{
+    let mut total = 0;
+
+    for range_str in input.split(',') {
+        let range_str = range_str.trim();
+        if let Ok(range) = parse_range(range_str) {
+            let invalid_ids = find_ids_in_range(&range, validator);
+            total += invalid_ids.iter().sum::<u64>();
         }
     }
-    invalid_ids
+
+    total
 }
 
 pub fn solve(input: &str) -> u64 {
-    let mut total = 0;
-
-    for range_str in input.split(',') {
-        let range_str = range_str.trim();
-        if let Ok(range) = parse_range(range_str) {
-            let invalid_ids = find_invalid_ids_in_range(&range);
-            total += invalid_ids.iter().sum::<u64>();
-        }
-    }
-
-    total
+    solve_with_validator(input, is_invalid_id)
 }
 
 pub fn find_invalid_ids_in_range_part2(range: &Range) -> Vec<u64> {
-    let mut invalid_ids = Vec::new();
-    for id in range.start..=range.end {
-        if is_invalid_id_part2(id) {
-            invalid_ids.push(id);
-        }
-    }
-    invalid_ids
+    find_ids_in_range(range, is_invalid_id_part2)
 }
 
 pub fn solve_part2(input: &str) -> u64 {
-    let mut total = 0;
-
-    for range_str in input.split(',') {
-        let range_str = range_str.trim();
-        if let Ok(range) = parse_range(range_str) {
-            let invalid_ids = find_invalid_ids_in_range_part2(&range);
-            total += invalid_ids.iter().sum::<u64>();
-        }
-    }
-
-    total
+    solve_with_validator(input, is_invalid_id_part2)
 }
 
 #[cfg(test)]
@@ -225,5 +213,34 @@ mod tests {
     fn solves_part2() {
         let input = include_str!("invalid-ids.txt");
         assert_eq!(solve_part2(input), 53481866137);
+    }
+
+    // Refactoring tests
+    #[test]
+    fn solve_with_validator_works_with_part1_validator() {
+        let input = "11-22,95-115";
+        let result = solve_with_validator(input, is_invalid_id);
+        assert_eq!(result, 132); // (11 + 22) + 99
+    }
+
+    #[test]
+    fn solve_with_validator_works_with_part2_validator() {
+        let input = "11-22,95-115";
+        let result = solve_with_validator(input, is_invalid_id_part2);
+        assert_eq!(result, 243); // (11 + 22) + (99 + 111)
+    }
+
+    #[test]
+    fn find_ids_in_range_works_with_part1_validator() {
+        let range = Range { start: 95, end: 115 };
+        let invalid_ids = find_ids_in_range(&range, is_invalid_id);
+        assert_eq!(invalid_ids, vec![99]);
+    }
+
+    #[test]
+    fn find_ids_in_range_works_with_part2_validator() {
+        let range = Range { start: 95, end: 115 };
+        let invalid_ids = find_ids_in_range(&range, is_invalid_id_part2);
+        assert_eq!(invalid_ids, vec![99, 111]);
     }
 }
