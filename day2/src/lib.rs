@@ -22,4 +22,19 @@ mod tests {
     fn detects_simple_invalid_id() {
         assert!(is_invalid_id(55));
     }
+
+    #[test]
+    fn detects_four_digit_invalid_id() {
+        assert!(is_invalid_id(6464));
+    }
+
+    #[test]
+    fn detects_six_digit_invalid_id() {
+        assert!(is_invalid_id(123123));
+    }
+
+    #[test]
+    fn valid_id_is_not_invalid() {
+        assert!(!is_invalid_id(101));
+    }
 }
