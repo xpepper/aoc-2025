@@ -27,8 +27,8 @@ We follow strict Test-Driven Development with small, incremental steps:
 - Follow Rust naming conventions (snake_case for functions, CamelCase for types)
 - Leverage the type system for correctness
 - Use `cargo test` for running tests
-- Use `cargo clippy` for linting (when needed)
-- Use `cargo fmt` for consistent formatting
+- Always run `cargo clippy -- -D warnings` for linting and getting hints for idiomatic Rust code
+- Use `cargo fmt` before committing any code, for consistent formatting
 
 ## Problem-Solving Strategy
 
