@@ -13,6 +13,27 @@ pub fn is_invalid_id(id: u64) -> bool {
     first_half == second_half
 }
 
+pub struct Range {
+    pub start: u64,
+    pub end: u64,
+}
+
+pub fn parse_range(input: &str) -> Result<Range, String> {
+    let parts: Vec<&str> = input.split('-').collect();
+    if parts.len() != 2 {
+        return Err("Invalid range format".to_string());
+    }
+
+    let start = parts[0]
+        .parse::<u64>()
+        .map_err(|_| "Invalid start number".to_string())?;
+    let end = parts[1]
+        .parse::<u64>()
+        .map_err(|_| "Invalid end number".to_string())?;
+
+    Ok(Range { start, end })
+}
+
 #[cfg(test)]
 
 mod tests {
@@ -36,5 +57,12 @@ mod tests {
     #[test]
     fn valid_id_is_not_invalid() {
         assert!(!is_invalid_id(101));
+    }
+
+    #[test]
+    fn parses_simple_range() {
+        let range = parse_range("11-22").unwrap();
+        assert_eq!(range.start, 11);
+        assert_eq!(range.end, 22);
     }
 }
