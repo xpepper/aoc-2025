@@ -13,6 +13,27 @@ pub fn is_invalid_id(id: u64) -> bool {
     first_half == second_half
 }
 
+pub fn is_invalid_id_part2(id: u64) -> bool {
+    let s = id.to_string();
+    let len = s.len();
+
+    // Try all possible substring lengths from 1 to len/2
+    for k in 1..=len / 2 {
+        // The length must be divisible by k
+        if len.is_multiple_of(k) {
+            let pattern = &s[..k];
+            let repetitions = len / k;
+
+            // Check if repeating the pattern matches the string
+            if pattern.repeat(repetitions) == s {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 pub struct Range {
     pub start: u64,
     pub end: u64,
@@ -137,5 +158,26 @@ mod tests {
     fn solves_part1() {
         let input = include_str!("invalid-ids.txt");
         assert_eq!(solve(input), 44487518055);
+    }
+
+    // Part 2 tests
+    #[test]
+    fn part2_detects_triple_digit() {
+        assert!(is_invalid_id_part2(111)); // 1 repeated 3 times
+    }
+
+    #[test]
+    fn part2_detects_quadruple_digit() {
+        assert!(is_invalid_id_part2(9999)); // 9 repeated 4 times
+    }
+
+    #[test]
+    fn part2_detects_double_pattern() {
+        assert!(is_invalid_id_part2(123123)); // 123 repeated 2 times (same as Part 1)
+    }
+
+    #[test]
+    fn part2_detects_triple_pattern() {
+        assert!(is_invalid_id_part2(123123123)); // 123 repeated 3 times
     }
 }
