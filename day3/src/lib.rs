@@ -15,6 +15,11 @@ pub fn max_joltage(bank: &str) -> u32 {
     max
 }
 
+/// Solves the puzzle by summing the maximum joltage from each bank.
+pub fn solve(input: &str) -> u32 {
+    input.lines().map(max_joltage).sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -41,5 +46,12 @@ mod tests {
     fn max_joltage_largest_digits_in_middle() {
         // In 818181911112111, the 9 and 2 somewhere in the middle produce 92
         assert_eq!(max_joltage("818181911112111"), 92);
+    }
+
+    #[test]
+    fn solve_example_input() {
+        let input = "987654321111111\n811111111111119\n234234234234278\n818181911112111";
+        // 98 + 89 + 78 + 92 = 357
+        assert_eq!(solve(input), 357);
     }
 }
