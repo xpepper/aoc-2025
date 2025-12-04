@@ -75,3 +75,23 @@ We follow strict Test-Driven Development with small, incremental steps:
 - Explain reasoning for test cases
 - Review code together during refactoring
 - Celebrate when tests pass! 🎉
+
+### TDD Cycle Workflow (Agent-Assisted Pairing)
+
+When pairing with an AI agent, follow this workflow for each TDD cycle:
+
+1. **Execute one complete TDD cycle**:
+   - Write a failing test (RED)
+   - Implement the simplest and minimal code that would make the test pass (GREEN)
+   - Refactor mercilessly (REFACTOR)
+
+2. **Run safeguards**:
+   - `cargo test` - ensure all tests pass
+   - `cargo clippy -- -D warnings` - check for linting issues
+   - `cargo fmt` - format the code
+
+3. **Commit the changes** with a descriptive conventional commit message
+
+4. **STOP and ask the user** before starting the next TDD cycle
+   - This gives the user the opportunity to review, discuss, or redirect
+   - The agent should NOT proceed to the next cycle without explicit user confirmation
