@@ -36,4 +36,10 @@ mod tests {
         // In 234234234234278, the last two batteries (7 and 8) produce 78
         assert_eq!(max_joltage("234234234234278"), 78);
     }
+
+    #[test]
+    fn max_joltage_largest_digits_in_middle() {
+        // In 818181911112111, the 9 and 2 somewhere in the middle produce 92
+        assert_eq!(max_joltage("818181911112111"), 92);
+    }
 }
