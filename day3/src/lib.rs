@@ -30,4 +30,10 @@ mod tests {
         // In 811111111111119, the 8 is first and 9 is last, producing 89
         assert_eq!(max_joltage("811111111111119"), 89);
     }
+
+    #[test]
+    fn max_joltage_last_two_batteries_are_largest() {
+        // In 234234234234278, the last two batteries (7 and 8) produce 78
+        assert_eq!(max_joltage("234234234234278"), 78);
+    }
 }
