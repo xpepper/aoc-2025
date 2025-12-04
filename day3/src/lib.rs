@@ -15,6 +15,37 @@ pub fn max_joltage(bank: &str) -> u32 {
     max
 }
 
+/// Calculates the maximum joltage from a bank by picking exactly n batteries.
+/// Uses a greedy approach: at each position, pick the largest digit that
+/// leaves enough remaining digits to complete the selection.
+pub fn max_joltage_n(bank: &str, n: usize) -> u64 {
+    let digits: Vec<u64> = bank
+        .chars()
+        .map(|c| c.to_digit(10).unwrap() as u64)
+        .collect();
+    let mut result: u64 = 0;
+    let mut start = 0;
+
+    for remaining in (1..=n).rev() {
+        // We need to pick `remaining` more digits
+        // The latest position we can pick from is len - remaining
+        let end = digits.len() - remaining;
+
+        // Find the maximum digit in range [start, end]
+        let mut max_idx = start;
+        for i in start..=end {
+            if digits[i] > digits[max_idx] {
+                max_idx = i;
+            }
+        }
+
+        result = result * 10 + digits[max_idx];
+        start = max_idx + 1;
+    }
+
+    result
+}
+
 /// Solves the puzzle by summing the maximum joltage from each bank.
 pub fn solve(input: &str) -> u32 {
     input.lines().map(max_joltage).sum()
@@ -53,5 +84,12 @@ mod tests {
         let input = "987654321111111\n811111111111119\n234234234234278\n818181911112111";
         // 98 + 89 + 78 + 92 = 357
         assert_eq!(solve(input), 357);
+    }
+
+    // Part 2 tests
+    #[test]
+    fn max_joltage_n_first_example() {
+        // In 987654321111111, pick 12 batteries -> 987654321111
+        assert_eq!(max_joltage_n("987654321111111", 12), 987654321111);
     }
 }
