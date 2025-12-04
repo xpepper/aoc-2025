@@ -165,4 +165,12 @@ mod tests {
 @.@.@@@.@.";
         assert_eq!(count_total_removable_rolls(grid), 43);
     }
+
+    #[test]
+    fn solve_puzzle_part2() {
+        let grid = include_str!("../paper-roll-locations.txt");
+        let result = count_total_removable_rolls(grid);
+        println!("Puzzle answer part 2: {}", result);
+        assert!(result > 0);
+    }
 }
