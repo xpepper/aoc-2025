@@ -24,4 +24,10 @@ mod tests {
         // In 987654321111111, the largest joltage is 98 (first two batteries)
         assert_eq!(max_joltage("987654321111111"), 98);
     }
+
+    #[test]
+    fn max_joltage_largest_digits_at_opposite_ends() {
+        // In 811111111111119, the 8 is first and 9 is last, producing 89
+        assert_eq!(max_joltage("811111111111119"), 89);
+    }
 }
