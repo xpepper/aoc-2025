@@ -51,6 +51,11 @@ pub fn solve(input: &str) -> u32 {
     input.lines().map(max_joltage).sum()
 }
 
+/// Solves Part 2 by summing the maximum joltage (12 batteries each) from each bank.
+pub fn solve_part2(input: &str) -> u64 {
+    input.lines().map(|line| max_joltage_n(line, 12)).sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -109,5 +114,12 @@ mod tests {
     fn max_joltage_n_fourth_example() {
         // In 818181911112111, pick 12 batteries -> 888911112111
         assert_eq!(max_joltage_n("818181911112111", 12), 888911112111);
+    }
+
+    #[test]
+    fn solve_part2_example_input() {
+        let input = "987654321111111\n811111111111119\n234234234234278\n818181911112111";
+        // 987654321111 + 811111111119 + 434234234278 + 888911112111 = 3121910778619
+        assert_eq!(solve_part2(input), 3121910778619);
     }
 }
