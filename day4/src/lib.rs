@@ -61,4 +61,20 @@ mod tests {
         let grid = ".@.\n@@@\n.@.";
         assert_eq!(count_accessible_rolls(grid), 4); // only the 4 outer rolls are accessible
     }
+
+    #[test]
+    fn puzzle_example() {
+        let grid = "\
+..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.";
+        assert_eq!(count_accessible_rolls(grid), 13);
+    }
 }
