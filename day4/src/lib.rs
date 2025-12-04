@@ -77,4 +77,12 @@ mod tests {
 @.@.@@@.@.";
         assert_eq!(count_accessible_rolls(grid), 13);
     }
+
+    #[test]
+    fn solve_puzzle() {
+        let grid = include_str!("../paper-roll-locations.txt");
+        let result = count_accessible_rolls(grid);
+        println!("Puzzle answer: {}", result);
+        assert!(result > 0); // We just want to see the answer
+    }
 }
