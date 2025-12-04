@@ -1,5 +1,5 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+pub fn count_accessible_rolls(_grid: &str) -> usize {
+    1
 }
 
 #[cfg(test)]
@@ -7,8 +7,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn single_paper_roll_with_no_neighbors_is_accessible() {
+        let grid = "@";
+        assert_eq!(count_accessible_rolls(grid), 1);
     }
 }
