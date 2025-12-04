@@ -92,4 +92,10 @@ mod tests {
         // In 987654321111111, pick 12 batteries -> 987654321111
         assert_eq!(max_joltage_n("987654321111111", 12), 987654321111);
     }
+
+    #[test]
+    fn max_joltage_n_second_example() {
+        // In 811111111111119, pick 12 batteries -> 811111111119
+        assert_eq!(max_joltage_n("811111111111119", 12), 811111111119);
+    }
 }
