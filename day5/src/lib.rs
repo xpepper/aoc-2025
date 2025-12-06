@@ -1,7 +1,6 @@
-use std::collections::HashSet;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Range {
     start: u64,
     end: u64,
@@ -45,14 +44,36 @@ pub fn count_fresh(ranges: &[Range], ids: &[u64]) -> usize {
     ids.iter().filter(|&&id| is_fresh(ranges, id)).count()
 }
 
-pub fn count_all_fresh_ids(ranges: &[Range]) -> usize {
-    let mut unique_ids = HashSet::new();
-    for range in ranges {
-        for id in range.start..=range.end {
-            unique_ids.insert(id);
+fn merge_ranges(ranges: &[Range]) -> Vec<Range> {
+    if ranges.is_empty() {
+        return Vec::new();
+    }
+
+    let mut sorted_ranges: Vec<Range> = ranges.to_vec();
+    sorted_ranges.sort_by_key(|r| r.start);
+
+    let mut merged = Vec::new();
+    merged.push(sorted_ranges[0]);
+
+    for current in sorted_ranges.iter().skip(1) {
+        let last = merged.last_mut().unwrap();
+        if current.start <= last.end.saturating_add(1) {
+            last.end = last.end.max(current.end);
+        } else {
+            merged.push(*current);
         }
     }
-    unique_ids.len()
+
+    merged
+}
+
+fn range_size(range: &Range) -> usize {
+    (range.end - range.start + 1) as usize
+}
+
+pub fn count_all_fresh_ids(ranges: &[Range]) -> usize {
+    let merged = merge_ranges(ranges);
+    merged.iter().map(range_size).sum()
 }
 
 pub fn solve(input: &str) -> Result<usize, String> {
@@ -165,5 +186,19 @@ mod tests {
     fn solve_part2_returns_count_of_all_fresh_ids() {
         let input = "3-5\n10-14\n16-20\n12-18\n\n1\n5\n8\n11\n17\n32";
         assert_eq!(solve_part2(input).unwrap(), 14);
+    }
+
+    #[test]
+    fn merges_overlapping_ranges() {
+        let ranges = vec![
+            Range { start: 3, end: 5 },
+            Range { start: 10, end: 14 },
+            Range { start: 16, end: 20 },
+            Range { start: 12, end: 18 },
+        ];
+        let merged = merge_ranges(&ranges);
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged[0], Range { start: 3, end: 5 });
+        assert_eq!(merged[1], Range { start: 10, end: 20 });
     }
 }
