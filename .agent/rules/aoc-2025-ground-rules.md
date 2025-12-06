@@ -12,14 +12,20 @@ We follow strict Test-Driven Development with small, incremental steps:
 
 1. **Red**: Write a failing test for the next small piece of functionality
 2. **Green**: Write the minimal code to make the test pass
-3. **Refactor**: Clean up the code while keeping tests green. This means: making the code easier to change, easier to understand (more readable), flexible (less coupled) and well composed.
+3. **Refactor**: **NEVER SKIP THIS STEP**. Clean up the code while keeping tests green. This means:
+   - **Extract small, focused functions**: Break down complex functions into smaller, well-named functions that do one thing
+   - **Reduce cognitive load**: Make code easier to read and understand by eliminating duplication and improving naming
+   - **Improve modularity**: Make the code easier to change, easier to understand (more readable), flexible (less coupled) and well composed
+   - **Look for patterns**: When you see similar code repeated, extract it into a focused helper function
+   - **Single Responsibility**: Each function should have a clear, single purpose
 
 ### Key Principles
 
 - **Small Steps**: Each test should verify one small behavior
 - **Minimal Implementation**: Write only enough code to pass the current test
 - **No Skipping**: Never write production code without a failing test first
-- **Refactor Fearlessly**: Tests give us confidence to improve code structure
+- **Refactor Fearlessly**: Tests give us confidence to improve code structure. Always refactor after green - it's not optional!
+- **Extract Functions**: When you see similar logic or complex expressions, extract them into small, focused helper functions with descriptive names
 - **Keep Tests Fast**: All tests should run quickly to maintain rapid feedback
 
 ## Rust Best Practices
@@ -83,7 +89,7 @@ When pairing with an AI agent, follow this workflow for each TDD cycle:
 1. **Execute one complete TDD cycle**:
    - Write a failing test (RED)
    - Implement the simplest and minimal code that would make the test pass (GREEN)
-   - Refactor mercilessly (REFACTOR)
+   - **Refactor mercilessly (REFACTOR)**: This is mandatory, not optional. Extract small, focused functions, eliminate duplication, improve readability, and reduce cognitive load. Look for similar patterns and extract them into well-named helper functions.
 
 2. **Run safeguards**:
    - `cargo test` - ensure all tests pass
