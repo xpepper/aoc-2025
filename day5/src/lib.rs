@@ -60,6 +60,19 @@ pub fn solve(input: &str) -> Result<usize, String> {
     Ok(count_fresh(&ranges, &ids))
 }
 
+fn parse_ranges_from_input(input: &str) -> Result<Vec<Range>, String> {
+    let parts: Vec<&str> = input.split("\n\n").collect();
+    if parts.is_empty() {
+        return Err("Input must contain at least ranges".to_string());
+    }
+    parse_ranges(parts[0])
+}
+
+pub fn solve_part2(input: &str) -> Result<usize, String> {
+    let ranges = parse_ranges_from_input(input)?;
+    Ok(count_all_fresh_ids(&ranges))
+}
+
 pub fn parse_input(input: &str) -> Result<(Vec<Range>, Vec<u64>), String> {
     let parts: Vec<&str> = input.split("\n\n").collect();
     if parts.len() != 2 {
@@ -146,5 +159,11 @@ mod tests {
             Range { start: 12, end: 18 },
         ];
         assert_eq!(count_all_fresh_ids(&ranges), 14);
+    }
+
+    #[test]
+    fn solve_part2_returns_count_of_all_fresh_ids() {
+        let input = "3-5\n10-14\n16-20\n12-18\n\n1\n5\n8\n11\n17\n32";
+        assert_eq!(solve_part2(input).unwrap(), 14);
     }
 }
