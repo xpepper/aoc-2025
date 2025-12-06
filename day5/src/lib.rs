@@ -12,20 +12,26 @@ impl Range {
     }
 }
 
+fn split_range_parts(s: &str) -> Result<(&str, &str), String> {
+    let parts: Vec<&str> = s.split('-').collect();
+    if parts.len() != 2 {
+        return Err(format!("Invalid range format: {}", s));
+    }
+    Ok((parts[0], parts[1]))
+}
+
+fn parse_number_part(part: &str, part_name: &str) -> Result<u64, String> {
+    part.parse()
+        .map_err(|_| format!("Invalid {}: {}", part_name, part))
+}
+
 impl FromStr for Range {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split('-').collect();
-        if parts.len() != 2 {
-            return Err(format!("Invalid range format: {}", s));
-        }
-        let start = parts[0]
-            .parse()
-            .map_err(|_| format!("Invalid start: {}", parts[0]))?;
-        let end = parts[1]
-            .parse()
-            .map_err(|_| format!("Invalid end: {}", parts[1]))?;
+        let (start_str, end_str) = split_range_parts(s)?;
+        let start = parse_number_part(start_str, "start")?;
+        let end = parse_number_part(end_str, "end")?;
         Ok(Range { start, end })
     }
 }
