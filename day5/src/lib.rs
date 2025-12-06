@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -42,6 +43,16 @@ pub fn is_fresh(ranges: &[Range], id: u64) -> bool {
 
 pub fn count_fresh(ranges: &[Range], ids: &[u64]) -> usize {
     ids.iter().filter(|&&id| is_fresh(ranges, id)).count()
+}
+
+pub fn count_all_fresh_ids(ranges: &[Range]) -> usize {
+    let mut unique_ids = HashSet::new();
+    for range in ranges {
+        for id in range.start..=range.end {
+            unique_ids.insert(id);
+        }
+    }
+    unique_ids.len()
 }
 
 pub fn solve(input: &str) -> Result<usize, String> {
@@ -124,5 +135,16 @@ mod tests {
     fn solve_returns_count_of_fresh_ids() {
         let input = "3-5\n10-14\n16-20\n12-18\n\n1\n5\n8\n11\n17\n32";
         assert_eq!(solve(input).unwrap(), 3);
+    }
+
+    #[test]
+    fn counts_all_unique_fresh_ids_from_ranges() {
+        let ranges = vec![
+            Range { start: 3, end: 5 },
+            Range { start: 10, end: 14 },
+            Range { start: 16, end: 20 },
+            Range { start: 12, end: 18 },
+        ];
+        assert_eq!(count_all_fresh_ids(&ranges), 14);
     }
 }
