@@ -44,6 +44,11 @@ pub fn count_fresh(ranges: &[Range], ids: &[u64]) -> usize {
     ids.iter().filter(|&&id| is_fresh(ranges, id)).count()
 }
 
+pub fn solve(input: &str) -> Result<usize, String> {
+    let (ranges, ids) = parse_input(input)?;
+    Ok(count_fresh(&ranges, &ids))
+}
+
 pub fn parse_input(input: &str) -> Result<(Vec<Range>, Vec<u64>), String> {
     let parts: Vec<&str> = input.split("\n\n").collect();
     if parts.len() != 2 {
@@ -113,5 +118,11 @@ mod tests {
         let input = "3-5\n10-14\n16-20\n12-18\n\n1\n5\n8\n11\n17\n32";
         let (ranges, ids) = parse_input(input).unwrap();
         assert_eq!(count_fresh(&ranges, &ids), 3);
+    }
+
+    #[test]
+    fn solve_returns_count_of_fresh_ids() {
+        let input = "3-5\n10-14\n16-20\n12-18\n\n1\n5\n8\n11\n17\n32";
+        assert_eq!(solve(input).unwrap(), 3);
     }
 }
