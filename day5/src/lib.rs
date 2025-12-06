@@ -30,6 +30,10 @@ impl FromStr for Range {
     }
 }
 
+pub fn is_fresh(ranges: &[Range], id: u64) -> bool {
+    ranges.iter().any(|range| range.contains(id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -48,5 +52,14 @@ mod tests {
     fn range_can_be_parsed_from_string() {
         let range: Range = "3-5".parse().unwrap();
         assert_eq!(range, Range { start: 3, end: 5 });
+    }
+
+    #[test]
+    fn id_is_fresh_when_in_any_range() {
+        let ranges = vec![Range { start: 3, end: 5 }, Range { start: 10, end: 14 }];
+        assert_eq!(is_fresh(&ranges, 5), true);
+        assert_eq!(is_fresh(&ranges, 11), true);
+        assert_eq!(is_fresh(&ranges, 1), false);
+        assert_eq!(is_fresh(&ranges, 8), false);
     }
 }
