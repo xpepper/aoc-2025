@@ -40,6 +40,10 @@ pub fn is_fresh(ranges: &[Range], id: u64) -> bool {
     ranges.iter().any(|range| range.contains(id))
 }
 
+pub fn count_fresh(ranges: &[Range], ids: &[u64]) -> usize {
+    ids.iter().filter(|&&id| is_fresh(ranges, id)).count()
+}
+
 pub fn parse_input(input: &str) -> Result<(Vec<Range>, Vec<u64>), String> {
     let parts: Vec<&str> = input.split("\n\n").collect();
     if parts.len() != 2 {
@@ -102,5 +106,12 @@ mod tests {
         assert_eq!(ranges[0], Range { start: 3, end: 5 });
         assert_eq!(ranges[1], Range { start: 10, end: 14 });
         assert_eq!(ids, vec![1, 5, 8]);
+    }
+
+    #[test]
+    fn counts_fresh_ingredient_ids_from_example() {
+        let input = "3-5\n10-14\n16-20\n12-18\n\n1\n5\n8\n11\n17\n32";
+        let (ranges, ids) = parse_input(input).unwrap();
+        assert_eq!(count_fresh(&ranges, &ids), 3);
     }
 }
