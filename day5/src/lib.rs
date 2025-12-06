@@ -40,6 +40,31 @@ pub fn is_fresh(ranges: &[Range], id: u64) -> bool {
     ranges.iter().any(|range| range.contains(id))
 }
 
+pub fn parse_input(input: &str) -> Result<(Vec<Range>, Vec<u64>), String> {
+    let parts: Vec<&str> = input.split("\n\n").collect();
+    if parts.len() != 2 {
+        return Err("Input must contain ranges and IDs separated by a blank line".to_string());
+    }
+    let ranges = parse_ranges(parts[0])?;
+    let ids = parse_ids(parts[1])?;
+    Ok((ranges, ids))
+}
+
+fn parse_ranges(input: &str) -> Result<Vec<Range>, String> {
+    input
+        .lines()
+        .map(|line| line.parse())
+        .collect::<Result<Vec<Range>, _>>()
+        .map_err(|e| format!("Failed to parse ranges: {}", e))
+}
+
+fn parse_ids(input: &str) -> Result<Vec<u64>, String> {
+    input
+        .lines()
+        .map(|line| line.parse().map_err(|_| format!("Invalid ID: {}", line)))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -67,5 +92,15 @@ mod tests {
         assert_eq!(is_fresh(&ranges, 11), true);
         assert_eq!(is_fresh(&ranges, 1), false);
         assert_eq!(is_fresh(&ranges, 8), false);
+    }
+
+    #[test]
+    fn can_parse_input_with_ranges_and_ids() {
+        let input = "3-5\n10-14\n\n1\n5\n8";
+        let (ranges, ids) = parse_input(input).unwrap();
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(ranges[0], Range { start: 3, end: 5 });
+        assert_eq!(ranges[1], Range { start: 10, end: 14 });
+        assert_eq!(ids, vec![1, 5, 8]);
     }
 }
