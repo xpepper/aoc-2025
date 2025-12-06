@@ -100,6 +100,61 @@ fn apply_operation(numbers: &[u64], operation: char) -> u64 {
     }
 }
 
+pub fn solve_part2(input: &str) -> u64 {
+    let lines: Vec<&str> = input.lines().filter(|l| !l.is_empty()).collect();
+    if lines.is_empty() {
+        return 0;
+    }
+
+    let problem_boundaries = find_problem_boundaries(&lines);
+    // Read problems right-to-left (reverse order)
+    problem_boundaries
+        .iter()
+        .rev()
+        .map(|(start, end)| solve_problem_part2(&lines, *start, *end))
+        .sum()
+}
+
+fn solve_problem_part2(lines: &[&str], start_col: usize, end_col: usize) -> u64 {
+    let num_data_lines = lines.len() - 1;
+    let op_line = lines[num_data_lines];
+
+    let operation = extract_operation(op_line, start_col, end_col);
+    let numbers = extract_numbers_from_problem_part2(lines, start_col, end_col, num_data_lines);
+
+    apply_operation(&numbers, operation)
+}
+
+fn extract_numbers_from_problem_part2(
+    lines: &[&str],
+    start_col: usize,
+    end_col: usize,
+    num_data_lines: usize,
+) -> Vec<u64> {
+    (start_col..end_col)
+        .filter_map(|col| read_number_from_column(lines, col, num_data_lines))
+        .collect()
+}
+
+fn read_number_from_column(lines: &[&str], col: usize, num_data_lines: usize) -> Option<u64> {
+    let digits: String = (0..num_data_lines)
+        .filter_map(|row| {
+            if col < lines[row].len() {
+                let ch = lines[row].chars().nth(col)?;
+                if ch.is_ascii_digit() { Some(ch) } else { None }
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if digits.is_empty() {
+        None
+    } else {
+        digits.parse().ok()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,5 +171,12 @@ mod tests {
         let input = "123\n 45\n  6\n*\n";
         let result = solve(input);
         assert_eq!(result, 33210);
+    }
+
+    #[test]
+    fn solve_part2_example_worksheet() {
+        let input = "123 328  51 64 \n 45 64  387 23 \n  6 98  215 314\n*   +   *   +  \n";
+        let result = solve_part2(input);
+        assert_eq!(result, 3263827);
     }
 }
