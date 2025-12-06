@@ -110,4 +110,11 @@ mod tests {
         let result = solve(input);
         assert_eq!(result, 4277556);
     }
+
+    #[test]
+    fn solve_single_problem() {
+        let input = "123\n 45\n  6\n*\n";
+        let result = solve(input);
+        assert_eq!(result, 33210);
+    }
 }
