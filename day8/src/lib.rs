@@ -13,6 +13,25 @@ pub fn distance(coord1: (i32, i32, i32), coord2: (i32, i32, i32)) -> f64 {
     (dx * dx + dy * dy + dz * dz).sqrt()
 }
 
+pub struct UnionFind {
+    #[allow(dead_code)]
+    parent: Vec<usize>,
+    size: Vec<usize>,
+}
+
+impl UnionFind {
+    pub fn new(n: usize) -> Self {
+        UnionFind {
+            parent: (0..n).collect(),
+            size: vec![1; n],
+        }
+    }
+
+    pub fn circuit_size(&self, x: usize) -> usize {
+        self.size[x]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -33,5 +52,14 @@ mod tests {
         // √(69169 + 16129 + 15129)
         // √100427 ≈ 316.898
         assert!((dist - 316.898).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_union_find_initialization() {
+        let uf = UnionFind::new(5);
+        // Each element should be in its own circuit initially
+        assert_eq!(uf.circuit_size(0), 1);
+        assert_eq!(uf.circuit_size(1), 1);
+        assert_eq!(uf.circuit_size(4), 1);
     }
 }
