@@ -1,6 +1,7 @@
 pub fn parse_coordinate(line: &str) -> (i32, i32, i32) {
     let parts: Vec<i32> = line.split(',').map(|s| s.parse().unwrap()).collect();
-    (parts[0], parts[1], parts[2])
+    let [x, y, z]: [i32; 3] = parts.try_into().unwrap();
+    (x, y, z)
 }
 
 #[cfg(test)]
