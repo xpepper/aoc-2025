@@ -34,6 +34,22 @@ impl UnionFind {
         self.parent[x]
     }
 
+    pub fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Union by size: attach smaller tree to larger tree
+            if self.size[root_x] < self.size[root_y] {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += self.size[root_x];
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += self.size[root_y];
+            }
+        }
+    }
+
     pub fn circuit_size(&self, x: usize) -> usize {
         self.size[x]
     }
@@ -77,5 +93,19 @@ mod tests {
         assert_eq!(uf.find(0), 0);
         assert_eq!(uf.find(1), 1);
         assert_eq!(uf.find(4), 4);
+    }
+
+    #[test]
+    fn test_union_find_union() {
+        let mut uf = UnionFind::new(5);
+        // Union 0 and 1
+        uf.union(0, 1);
+        // They should now have the same root
+        assert_eq!(uf.find(0), uf.find(1));
+        // Union 2 and 3
+        uf.union(2, 3);
+        assert_eq!(uf.find(2), uf.find(3));
+        // 0 and 2 should still be in different circuits
+        assert_ne!(uf.find(0), uf.find(2));
     }
 }
