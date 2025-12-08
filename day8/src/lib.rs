@@ -5,9 +5,11 @@ pub fn parse_coordinate(line: &str) -> (i32, i32, i32) {
 }
 
 pub fn distance(coord1: (i32, i32, i32), coord2: (i32, i32, i32)) -> f64 {
-    let dx = (coord2.0 - coord1.0) as f64;
-    let dy = (coord2.1 - coord1.1) as f64;
-    let dz = (coord2.2 - coord1.2) as f64;
+    let (x1, y1, z1) = coord1;
+    let (x2, y2, z2) = coord2;
+    let dx = (x2 - x1) as f64;
+    let dy = (y2 - y1) as f64;
+    let dz = (z2 - z1) as f64;
     (dx * dx + dy * dy + dz * dz).sqrt()
 }
 
