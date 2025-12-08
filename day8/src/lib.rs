@@ -131,4 +131,18 @@ mod tests {
         // 0 and 2 should still be in different circuits
         assert_ne!(uf.find(0), uf.find(2));
     }
+
+    #[test]
+    fn test_union_find_circuit_size() {
+        let mut uf = UnionFind::new(5);
+        // Union 0, 1, 2 into one circuit
+        uf.union(0, 1);
+        uf.union(1, 2);
+        // All three should report circuit size of 3
+        assert_eq!(uf.circuit_size(0), 3);
+        assert_eq!(uf.circuit_size(1), 3);
+        assert_eq!(uf.circuit_size(2), 3);
+        // Element 3 should still be alone
+        assert_eq!(uf.circuit_size(3), 1);
+    }
 }
