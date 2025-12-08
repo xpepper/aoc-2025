@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Coordinate {
     pub x: i32,
@@ -11,10 +13,21 @@ impl Coordinate {
     }
 }
 
-pub fn parse_coordinate(line: &str) -> Coordinate {
-    let parts: Vec<i32> = line.split(',').map(|s| s.parse().unwrap()).collect();
-    let [x, y, z]: [i32; 3] = parts.try_into().unwrap();
-    Coordinate::new(x, y, z)
+impl FromStr for Coordinate {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<i32> = s
+            .split(',')
+            .map(|p| p.parse().map_err(|e| format!("Parse error: {}", e)))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if parts.len() != 3 {
+            return Err(format!("Expected 3 coordinates, got {}", parts.len()));
+        }
+
+        Ok(Coordinate::new(parts[0], parts[1], parts[2]))
+    }
 }
 
 pub fn distance(coord1: Coordinate, coord2: Coordinate) -> f64 {
@@ -71,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_parse_coordinate() {
-        let coord = parse_coordinate("162,817,812");
+        let coord: Coordinate = "162,817,812".parse().unwrap();
         assert_eq!(coord, Coordinate::new(162, 817, 812));
     }
 
