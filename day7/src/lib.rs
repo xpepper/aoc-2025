@@ -8,16 +8,29 @@ pub struct Grid {
     pub start: Point,
 }
 
-pub fn parse(input: &str) -> Grid {
-    let mut start = Point { x: 0, y: 0 };
-    for (y, line) in input.lines().enumerate() {
-        for (x, char) in line.chars().enumerate() {
-            if char == 'S' {
-                start = Point { x, y };
-            }
-        }
+impl std::str::FromStr for Grid {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let start = s
+            .lines()
+            .enumerate()
+            .flat_map(|(y, line)| {
+                line.chars()
+                    .enumerate()
+                    .map(move |(x, c)| (Point { x, y }, c))
+            })
+            .find(|(_, c)| *c == 'S')
+            .map(|(point, _)| point)
+            .ok_or_else(|| "Start point 'S' not found".to_string())?;
+
+        Ok(Grid { start })
     }
-    Grid { start }
+}
+
+pub fn parse(input: &str) -> Grid {
+    use std::str::FromStr;
+    Grid::from_str(input).expect("Invalid grid format")
 }
 
 pub fn solve(_input: &str) -> u64 {
