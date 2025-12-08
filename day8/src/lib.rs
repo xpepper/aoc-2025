@@ -105,6 +105,55 @@ fn sort_circuit_sizes_descending(sizes: &mut [usize]) {
     sizes.sort_by(|a, b| b.cmp(a));
 }
 
+pub fn solve_playground_problem(input: &str, num_connections: usize) -> u64 {
+    let coordinates = parse_coordinates(input).unwrap();
+    let all_pairs = calculate_all_pair_distances(&coordinates);
+    let sorted_pairs = sort_pairs_by_distance(all_pairs);
+    let connections =
+        select_closest_unconnected_pairs(&coordinates, &sorted_pairs, num_connections);
+    let circuit_sizes = get_all_circuit_sizes(&coordinates, &connections);
+    calculate_product_of_largest_circuits(&circuit_sizes)
+}
+
+fn sort_pairs_by_distance(mut pairs: Vec<(usize, usize, f64)>) -> Vec<(usize, usize, f64)> {
+    pairs.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+    pairs
+}
+
+fn select_closest_unconnected_pairs(
+    coordinates: &[Coordinate],
+    sorted_pairs: &[(usize, usize, f64)],
+    max_connections: usize,
+) -> Vec<(usize, usize)> {
+    let mut connections = Vec::new();
+    let mut uf = UnionFind::new(coordinates.len());
+
+    for &(i, j, _) in sorted_pairs {
+        if connections.len() >= max_connections {
+            break;
+        }
+
+        // Only connect pairs that aren't already in the same circuit
+        if uf.find(i) != uf.find(j) {
+            uf.union(i, j);
+            connections.push((i, j));
+        }
+    }
+
+    connections
+}
+
+fn calculate_product_of_largest_circuits(circuit_sizes: &[usize]) -> u64 {
+    match circuit_sizes.len() {
+        len if len >= 3 => {
+            circuit_sizes[0] as u64 * circuit_sizes[1] as u64 * circuit_sizes[2] as u64
+        }
+        2 => circuit_sizes[0] as u64 * circuit_sizes[1] as u64,
+        1 => circuit_sizes[0] as u64,
+        _ => 0,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct UnionFind {
     parent: Vec<usize>,
@@ -207,6 +256,28 @@ mod tests {
         assert_eq!(circuit_sizes.len(), 2);
         assert!(circuit_sizes.contains(&3));
         assert!(circuit_sizes.contains(&2));
+    }
+
+    #[test]
+    fn test_solve_playground_problem() {
+        // Test with a simple, verifiable example
+        let input = "0,0,0
+1,0,0
+0,1,0
+3,0,0
+0,3,0";
+
+        // With 5 points forming a cross, the 2 closest pairs should be:
+        // (0,0,0)-(1,0,0) and (0,0,0)-(0,1,0)
+        // This creates a circuit of size 3, and two separate points
+        let result = solve_playground_problem(input, 2);
+        // Circuit sizes should be [3, 1, 1], product = 3 * 1 * 1 = 3
+        assert_eq!(result, 3);
+
+        // Test with 3 connections to see if it connects more
+        let _result3 = solve_playground_problem(input, 3);
+        // Third connection should connect to either (3,0,0) or (0,3,0)
+        // This could create circuits of [4, 1] or [3, 2]
     }
 
     #[test]
