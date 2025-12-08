@@ -141,3 +141,31 @@ When pairing with an AI agent, follow this workflow for each TDD cycle:
 3. **STOP and ask the user** before starting the next TDD cycle
    - This gives the user the opportunity to review, discuss, or redirect
    - The agent should NOT proceed to the next cycle without explicit user confirmation
+
+## Refactoring Checklist (MANDATORY)
+
+**After EVERY Green step, you MUST complete this checklist before proceeding:**
+
+- [ ] **Extract Small Functions**: Break down complex functions (>10 lines) into smaller, focused helpers
+- [ ] **Single Responsibility**: Each function should do exactly one thing
+- [ ] **Reduce Cognitive Load**: Main function should read like the algorithm at a high level
+- [ ] **Improve Naming**: Function names should clearly describe what they do
+- [ ] **Eliminate Duplication**: Look for repeated patterns and extract them
+- [ ] **Enhance Readability**: Code should read like the problem domain
+
+## Refactoring Anti-Patterns (NEVER DO THESE)
+
+**❌ Skipping Refactoring**: "The code looks good enough" → REFACTOR ANYWAY
+**❌ Overlooking Complexity**: Functions >15 lines NEED refactoring, no exceptions
+**❌ Minimal Changes**: Only changing variable names is NOT refactoring
+**❌ Forgetting Structure**: Adding more comments instead of fixing structure is NOT refactoring
+**❌ Rationalizing**: "I'll refactor later" → REFACTOR NOW
+
+**If you catch yourself thinking any of these thoughts, STOP and refactor immediately:**
+- "This function isn't that complex"
+- "The code is clean enough"
+- "I don't see any obvious duplication"
+- "I'll refactor in the next cycle"
+- "The test passes, so we're good"
+
+**Remember**: Skipping refactoring violates the core principles of TDD and creates technical debt.
