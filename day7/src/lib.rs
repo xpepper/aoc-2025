@@ -263,4 +263,10 @@ mod tests {
 ...............";
         assert_eq!(solve_part2(input), 40);
     }
+
+    #[test]
+    fn solve_part2_with_puzzle_input() {
+        let input = include_str!("../puzzle-input.txt");
+        assert_eq!(solve_part2(input), 8632253783011);
+    }
 }
