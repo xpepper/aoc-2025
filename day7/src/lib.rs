@@ -162,4 +162,10 @@ mod tests {
 ...............";
         assert_eq!(solve(input), 21);
     }
+
+    #[test]
+    fn solve_with_puzzle_input() {
+        let input = include_str!("../puzzle-input.txt");
+        assert_eq!(solve(input), 1600);
+    }
 }
