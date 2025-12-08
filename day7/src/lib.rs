@@ -11,12 +11,51 @@ pub struct Grid {
     pub height: usize,
 }
 
+#[derive(Debug)]
+pub enum Interaction {
+    Continue(Point),
+    Split(Option<Point>, Option<Point>),
+    Terminated,
+}
+
 impl Grid {
     pub fn get(&self, p: &Point) -> Option<char> {
         if p.y < self.height && p.x < self.width {
             Some(self.cells[p.y][p.x])
         } else {
             None
+        }
+    }
+
+    pub fn interact(&self, p: &Point) -> Interaction {
+        let next_y = p.y + 1;
+        if next_y >= self.height {
+            return Interaction::Terminated;
+        }
+
+        let next_pos = Point { x: p.x, y: next_y };
+        match self.get(&next_pos) {
+            Some('^') => {
+                let left = if next_pos.x > 0 {
+                    Some(Point {
+                        x: next_pos.x - 1,
+                        y: next_pos.y,
+                    })
+                } else {
+                    None
+                };
+                let right = if next_pos.x + 1 < self.width {
+                    Some(Point {
+                        x: next_pos.x + 1,
+                        y: next_pos.y,
+                    })
+                } else {
+                    None
+                };
+                Interaction::Split(left, right)
+            }
+            Some(_) => Interaction::Continue(next_pos),
+            None => Interaction::Terminated,
         }
     }
 }
@@ -85,32 +124,20 @@ impl Simulation {
         let mut next_beams = Vec::new();
 
         for beam in &self.beams {
-            let next_pos = Point {
-                x: beam.x,
-                y: beam.y + 1,
-            };
-
-            if let Some(cell) = self.grid.get(&next_pos) {
-                match cell {
-                    '^' => {
-                        self.splits += 1;
-                        if next_pos.x > 0 {
-                            next_beams.push(Point {
-                                x: next_pos.x - 1,
-                                y: next_pos.y,
-                            });
-                        }
-                        if next_pos.x + 1 < self.grid.width {
-                            next_beams.push(Point {
-                                x: next_pos.x + 1,
-                                y: next_pos.y,
-                            });
-                        }
+            match self.grid.interact(beam) {
+                Interaction::Split(left, right) => {
+                    self.splits += 1;
+                    if let Some(p) = left {
+                        next_beams.push(p);
                     }
-                    _ => {
-                        next_beams.push(next_pos);
+                    if let Some(p) = right {
+                        next_beams.push(p);
                     }
                 }
+                Interaction::Continue(p) => {
+                    next_beams.push(p);
+                }
+                Interaction::Terminated => {}
             }
         }
         next_beams.sort();
@@ -150,45 +177,14 @@ impl PathCounter {
             return count;
         }
 
-        // Move down
-        let next_pos = Point { x: p.x, y: p.y + 1 };
-
-        // Check if we exited the manifold (bottom)
-        if next_pos.y >= self.grid.height {
-            return 1;
-        }
-
-        let count = if let Some(cell) = self.grid.get(&next_pos) {
-            match cell {
-                '^' => {
-                    // Split: create two new beams at left and right of splitter
-                    let left_count = if next_pos.x > 0 {
-                        self.count(Point {
-                            x: next_pos.x - 1,
-                            y: next_pos.y,
-                        })
-                    } else {
-                        1 // Hit left wall
-                    };
-
-                    let right_count = if next_pos.x + 1 < self.grid.width {
-                        self.count(Point {
-                            x: next_pos.x + 1,
-                            y: next_pos.y,
-                        })
-                    } else {
-                        1 // Hit right wall
-                    };
-
-                    left_count + right_count
-                }
-                _ => {
-                    // Continue down
-                    self.count(next_pos)
-                }
+        let count = match self.grid.interact(&p) {
+            Interaction::Split(left, right) => {
+                let left_count = left.map(|p| self.count(p)).unwrap_or(1);
+                let right_count = right.map(|p| self.count(p)).unwrap_or(1);
+                left_count + right_count
             }
-        } else {
-            1 // Out of bounds (width)
+            Interaction::Continue(next_p) => self.count(next_p),
+            Interaction::Terminated => 1,
         };
 
         self.memo.insert(p, count);
