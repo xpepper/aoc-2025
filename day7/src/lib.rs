@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Point {
     pub x: usize,
     pub y: usize,
@@ -125,6 +125,84 @@ pub fn solve(input: &str) -> u64 {
     simulation.run()
 }
 
+use std::collections::HashMap;
+
+struct PathCounter {
+    grid: Grid,
+    memo: HashMap<Point, u64>,
+}
+
+impl PathCounter {
+    fn new(grid: Grid) -> Self {
+        Self {
+            grid,
+            memo: HashMap::new(),
+        }
+    }
+
+    fn count(&mut self, p: Point) -> u64 {
+        // Check if we are already out of bounds (should be handled by caller, but for safety)
+        if p.y >= self.grid.height || p.x >= self.grid.width {
+            return 1;
+        }
+
+        if let Some(&count) = self.memo.get(&p) {
+            return count;
+        }
+
+        // Move down
+        let next_pos = Point { x: p.x, y: p.y + 1 };
+
+        // Check if we exited the manifold (bottom)
+        if next_pos.y >= self.grid.height {
+            return 1;
+        }
+
+        let count = if let Some(cell) = self.grid.get(&next_pos) {
+            match cell {
+                '^' => {
+                    // Split: create two new beams at left and right of splitter
+                    let left_count = if next_pos.x > 0 {
+                        self.count(Point {
+                            x: next_pos.x - 1,
+                            y: next_pos.y,
+                        })
+                    } else {
+                        1 // Hit left wall
+                    };
+
+                    let right_count = if next_pos.x + 1 < self.grid.width {
+                        self.count(Point {
+                            x: next_pos.x + 1,
+                            y: next_pos.y,
+                        })
+                    } else {
+                        1 // Hit right wall
+                    };
+
+                    left_count + right_count
+                }
+                _ => {
+                    // Continue down
+                    self.count(next_pos)
+                }
+            }
+        } else {
+            1 // Out of bounds (width)
+        };
+
+        self.memo.insert(p, count);
+        count
+    }
+}
+
+pub fn solve_part2(input: &str) -> u64 {
+    let grid = parse(input);
+    let start = grid.start.clone();
+    let mut counter = PathCounter::new(grid);
+    counter.count(start)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,5 +245,26 @@ mod tests {
     fn solve_with_puzzle_input() {
         let input = include_str!("../puzzle-input.txt");
         assert_eq!(solve(input), 1600);
+    }
+
+    #[test]
+    fn solve_part2_example_returns_40() {
+        let input = ".......S.......
+...............
+.......^.......
+...............
+......^.^......
+...............
+.....^.^.^.....
+...............
+....^.^...^....
+...............
+...^.^...^.^...
+...............
+..^...^.....^..
+...............
+.^.^.^.^.^...^.
+...............";
+        assert_eq!(solve_part2(input), 40);
     }
 }
