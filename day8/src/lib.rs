@@ -11,6 +11,20 @@ impl Coordinate {
     pub fn new(x: i32, y: i32, z: i32) -> Self {
         Coordinate { x, y, z }
     }
+
+    /// Calculate the distance from this coordinate to another
+    pub fn distance_from(&self, other: Coordinate) -> f64 {
+        let squared_distance = self.squared_distance_from(other);
+        (squared_distance as f64).sqrt()
+    }
+
+    /// Calculate squared distance for performance comparisons
+    pub fn squared_distance_from(&self, other: Coordinate) -> i64 {
+        let dx = (other.x - self.x) as i64;
+        let dy = (other.y - self.y) as i64;
+        let dz = (other.z - self.z) as i64;
+        dx * dx + dy * dy + dz * dz
+    }
 }
 
 impl FromStr for Coordinate {
@@ -30,20 +44,27 @@ impl FromStr for Coordinate {
     }
 }
 
-pub fn distance(coord1: Coordinate, coord2: Coordinate) -> f64 {
-    let squared_distance = squared_distance(coord1, coord2);
-    squared_distance.sqrt()
+pub fn parse_coordinates(input: &str) -> Result<Vec<Coordinate>, String> {
+    input
+        .lines()
+        .map(|line| {
+            line.parse()
+                .map_err(|e| format!("Failed to parse line '{}': {}", line, e))
+        })
+        .collect()
 }
 
-fn squared_distance(coord1: Coordinate, coord2: Coordinate) -> f64 {
-    let dx = difference(coord1.x, coord2.x);
-    let dy = difference(coord1.y, coord2.y);
-    let dz = difference(coord1.z, coord2.z);
-    dx * dx + dy * dy + dz * dz
-}
+pub fn calculate_all_pair_distances(coordinates: &[Coordinate]) -> Vec<(usize, usize, f64)> {
+    let mut pairs = Vec::new();
 
-fn difference(a: i32, b: i32) -> f64 {
-    (b - a) as f64
+    for i in 0..coordinates.len() {
+        for j in (i + 1)..coordinates.len() {
+            let dist = coordinates[i].distance_from(coordinates[j]);
+            pairs.push((i, j, dist));
+        }
+    }
+
+    pairs
 }
 
 #[derive(Debug, Clone)]
@@ -107,12 +128,26 @@ mod tests {
     fn test_distance() {
         let coord1 = Coordinate::new(162, 817, 812);
         let coord2 = Coordinate::new(425, 690, 689);
-        let dist = distance(coord1, coord2);
+        let dist = coord1.distance_from(coord2);
         // √((425-162)² + (690-817)² + (689-812)²)
         // √(263² + (-127)² + (-123)²)
         // √(69169 + 16129 + 15129)
-        // √100427 ≈ 316.898
-        assert!((dist - 316.898).abs() < 0.01);
+        // √100427 ≈ 316.902
+        const TOLERANCE: f64 = 0.01; // Appropriate tolerance for floating point comparisons
+        assert!((dist - 316.902).abs() < TOLERANCE);
+    }
+
+    #[test]
+    fn test_coordinate_squared_distance_from() {
+        let coord1 = Coordinate::new(0, 0, 0);
+        let coord2 = Coordinate::new(3, 4, 12);
+        let squared_dist = coord1.squared_distance_from(coord2);
+        // 3² + 4² + 12² = 9 + 16 + 144 = 169
+        assert_eq!(squared_dist, 169);
+
+        // Distance should be sqrt(169) = 13.0
+        let dist = coord1.distance_from(coord2);
+        assert_eq!(dist, 13.0);
     }
 
     #[test]
@@ -159,5 +194,51 @@ mod tests {
         assert_eq!(uf.circuit_size(2), 3);
         // Element 3 should still be alone
         assert_eq!(uf.circuit_size(3), 1);
+    }
+
+    #[test]
+    fn test_parse_coordinates() {
+        let input = "162,817,812\n57,618,57\n906,360,560";
+        let coordinates = parse_coordinates(input).unwrap();
+        assert_eq!(coordinates.len(), 3);
+        assert_eq!(coordinates[0], Coordinate::new(162, 817, 812));
+        assert_eq!(coordinates[1], Coordinate::new(57, 618, 57));
+        assert_eq!(coordinates[2], Coordinate::new(906, 360, 560));
+    }
+
+    #[test]
+    fn test_parse_coordinates_error_handling() {
+        let input = "162,817,812\ninvalid,coordinate\n906,360,560";
+        let result = parse_coordinates(input);
+        assert!(result.is_err());
+        let error_msg = result.unwrap_err();
+        assert!(error_msg.contains("invalid,coordinate"));
+    }
+
+    #[test]
+    fn test_calculate_all_pair_distances() {
+        let coords = vec![
+            Coordinate::new(0, 0, 0),
+            Coordinate::new(3, 4, 0),  // distance = 5.0
+            Coordinate::new(0, 0, 12), // distance from first = 12.0, from second ≈ 13.0
+        ];
+
+        let pairs = calculate_all_pair_distances(&coords);
+
+        // Should have 3 choose 2 = 3 pairs
+        assert_eq!(pairs.len(), 3);
+
+        // Check that all pairs are represented
+        let pair_indices: Vec<_> = pairs.iter().map(|(i, j, _)| (*i, *j)).collect();
+        assert!(pair_indices.contains(&(0, 1)));
+        assert!(pair_indices.contains(&(0, 2)));
+        assert!(pair_indices.contains(&(1, 2)));
+
+        // Check specific distances
+        let pair_01 = pairs.iter().find(|(i, j, _)| (*i, *j) == (0, 1)).unwrap();
+        assert_eq!(pair_01.2, 5.0);
+
+        let pair_02 = pairs.iter().find(|(i, j, _)| (*i, *j) == (0, 2)).unwrap();
+        assert_eq!(pair_02.2, 12.0);
     }
 }
