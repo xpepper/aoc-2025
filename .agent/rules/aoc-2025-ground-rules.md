@@ -55,16 +55,13 @@ We follow strict Test-Driven Development with small, incremental steps:
 ## Commit Strategy
 
 - Use conventional commit messages
-  - `feat` when adding features or changing visible behaviour
   - `refactor` when changing the structure without changing the behaviour
-  - `doc` when editing or adding documents
+  - `docs` when editing or adding documents (e.g. markdown files)
   - `test` when editing or adding tests
-- Commit after each green phase (passing tests)
-- Commit every time you:
-  - Add a new feature
-  - Complete a single TDD cycle
-  - Get a green bar that confirms progress
-  - Do a refactor while tests are passing
+  - `feat` when adding features or changing visible behaviour
+- **Separate Commits**: Always separate implementation commits from refactoring commits.
+  - Commit 1: After making the test pass (Green state). Message: `feat: ...`
+  - Commit 2: After refactoring (Refactor state). Message: `refactor: ...`
 - Write clear commit messages describing what was added/changed
 - Keep commits small and focused on one behavior
 
@@ -86,18 +83,18 @@ We follow strict Test-Driven Development with small, incremental steps:
 
 When pairing with an AI agent, follow this workflow for each TDD cycle:
 
-1. **Execute one complete TDD cycle**:
+1. **Red & Green**:
    - Write a failing test (RED)
    - Implement the simplest and minimal code that would make the test pass (GREEN)
-   - **Refactor mercilessly (REFACTOR)**: This is mandatory, not optional. Extract small, focused functions, eliminate duplication, improve readability, and reduce cognitive load. Look for similar patterns and extract them into well-named helper functions.
+   - Run safeguards (`cargo test`, `clippy`, `fmt`)
+   - **Commit**: `feat: ...`
 
-2. **Run safeguards**:
-   - `cargo test` - ensure all tests pass
-   - `cargo clippy -- -D warnings` - check for linting issues
-   - `cargo fmt` - format the code
+2. **Refactor**:
+   - **Refactor mercilessly**: Extract small, focused functions, eliminate duplication, improve readability.
+   - Always strive for writing idiomatic Rust code, like a seasoned Rust developer.
+   - Run safeguards (`cargo test`, `clippy`, `fmt`)
+   - **Commit**: `refactor: ...` (if any changes were made)
 
-3. **Commit the changes** with a descriptive conventional commit message
-
-4. **STOP and ask the user** before starting the next TDD cycle
+3. **STOP and ask the user** before starting the next TDD cycle
    - This gives the user the opportunity to review, discuss, or redirect
    - The agent should NOT proceed to the next cycle without explicit user confirmation
