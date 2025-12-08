@@ -31,12 +31,22 @@ impl FromStr for Coordinate {
 }
 
 pub fn distance(coord1: Coordinate, coord2: Coordinate) -> f64 {
-    let dx = (coord2.x - coord1.x) as f64;
-    let dy = (coord2.y - coord1.y) as f64;
-    let dz = (coord2.z - coord1.z) as f64;
-    (dx * dx + dy * dy + dz * dz).sqrt()
+    let squared_distance = squared_distance(coord1, coord2);
+    squared_distance.sqrt()
 }
 
+fn squared_distance(coord1: Coordinate, coord2: Coordinate) -> f64 {
+    let dx = difference(coord1.x, coord2.x);
+    let dy = difference(coord1.y, coord2.y);
+    let dz = difference(coord1.z, coord2.z);
+    dx * dx + dy * dy + dz * dz
+}
+
+fn difference(a: i32, b: i32) -> f64 {
+    (b - a) as f64
+}
+
+#[derive(Debug, Clone)]
 pub struct UnionFind {
     parent: Vec<usize>,
     size: Vec<usize>,
@@ -62,19 +72,24 @@ impl UnionFind {
         let root_y = self.find(y);
 
         if root_x != root_y {
-            // Union by size: attach smaller tree to larger tree
-            if self.size[root_x] < self.size[root_y] {
-                self.parent[root_x] = root_y;
-                self.size[root_y] += self.size[root_x];
-            } else {
-                self.parent[root_y] = root_x;
-                self.size[root_x] += self.size[root_y];
-            }
+            self.merge_circuits(root_x, root_y);
         }
     }
 
-    pub fn circuit_size(&self, x: usize) -> usize {
-        self.size[x]
+    fn merge_circuits(&mut self, root_x: usize, root_y: usize) {
+        // Union by size: attach smaller tree to larger tree
+        if self.size[root_x] < self.size[root_y] {
+            self.parent[root_x] = root_y;
+            self.size[root_y] += self.size[root_x];
+        } else {
+            self.parent[root_y] = root_x;
+            self.size[root_x] += self.size[root_y];
+        }
+    }
+
+    pub fn circuit_size(&mut self, x: usize) -> usize {
+        let root = self.find(x);
+        self.size[root]
     }
 }
 
@@ -102,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_union_find_initialization() {
-        let uf = UnionFind::new(5);
+        let mut uf = UnionFind::new(5);
         // Each element should be in its own circuit initially
         assert_eq!(uf.circuit_size(0), 1);
         assert_eq!(uf.circuit_size(1), 1);
