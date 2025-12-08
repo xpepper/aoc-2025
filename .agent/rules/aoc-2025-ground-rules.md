@@ -72,6 +72,32 @@ We follow strict Test-Driven Development with small, incremental steps:
 - **YAGNI**: You Aren't Gonna Need It - don't add features prematurely
 - **Simplicity**: Prefer simple solutions over clever ones
 
+## Domain Modeling
+
+As we refactor, we should make domain concepts explicit in the code:
+
+- **Extract Domain Types**: When patterns emerge, replace primitive types with domain-specific structs, enums, or type aliases
+  - Example: Instead of [(i32, i32, i32)](cci:1://file:///Users/pietrodibello/Documents/workspace/kata/rust/aoc-2025/day8/src/lib.rs:0:0-4:1) tuples, create a `Coordinate` struct
+  - Example: Instead of raw `Vec<f64>`, create a `Circuit` type
+- **Leverage Rust's Type System**: Use the compiler to prevent domain errors
+  - Create newtypes to prevent mixing up similar primitives
+  - Use enums to model distinct states or variants
+  - Use traits to define domain behaviors
+- **Make the Code Read Like the Problem**: The codebase should reflect the domain language
+  - If the problem talks about "circuits", we should have a `Circuit` type
+  - If the problem mentions "junction boxes", consider a `JunctionBox` struct
+  - If there are "connections", model them explicitly
+- **Refactor to Domain Models During the GREEN→REFACTOR Step**:
+  - Start with primitives to get tests passing quickly (GREEN)
+  - Then extract domain types during refactoring to improve clarity
+  - Don't prematurely create domain types before patterns emerge
+
+This approach makes code more:
+- **Readable**: Domain concepts are visible and discoverable
+- **Maintainable**: Changes are localized to domain types
+- **Safe**: The type system prevents misuse
+- **Self-documenting**: Types communicate intent
+
 ## Pairing Guidelines
 
 - Discuss approach before writing tests
