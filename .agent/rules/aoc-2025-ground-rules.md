@@ -36,6 +36,23 @@ We follow strict Test-Driven Development with small, incremental steps:
 - Always run `cargo clippy -- -D warnings` for linting and getting hints for idiomatic Rust code
 - Use `cargo fmt` before committing any code, for consistent formatting
 
+### Idiomatic Rust Patterns
+
+During refactoring, actively look for opportunities to use standard library traits:
+
+- **`FromStr`**: For parsing types from strings (enables `.parse()`)
+  - Replace custom `parse_*` functions with `FromStr` implementations
+- **`Display`**: For user-friendly string representations
+- **`From`/`Into`**: For conversions between types
+- **`Default`**: For default values
+- **Derive traits**: Use `#[derive(...)]` for `Debug`, `Clone`, `Copy`, `PartialEq`, etc.
+
+**Refactoring Checklist**:
+- [ ] Custom parsing functions → `FromStr` trait
+- [ ] Primitive types representing domain concepts → domain structs/enums
+- [ ] Repeated tuple patterns → named structs
+- [ ] Magic numbers/strings → const or enum variants
+
 ## Problem-Solving Strategy
 
 1. **Understand**: Read the problem carefully, identify inputs and outputs
