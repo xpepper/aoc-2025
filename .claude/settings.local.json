@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:using-superpowers)",
+      "Skill(superpowers:test-driven-development)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
