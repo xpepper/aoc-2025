@@ -47,6 +47,7 @@ impl FromStr for Coordinate {
 pub fn parse_coordinates(input: &str) -> Result<Vec<Coordinate>, String> {
     input
         .lines()
+        .filter(|line| !line.trim().is_empty()) // Filter out empty lines
         .map(|line| {
             line.parse()
                 .map_err(|e| format!("Failed to parse line '{}': {}", line, e))
@@ -115,24 +116,20 @@ pub fn solve_playground_problem(input: &str, num_connections: usize) -> u64 {
     calculate_product_of_largest_circuits(&circuit_sizes)
 }
 
-fn sort_pairs_by_distance(mut pairs: Vec<(usize, usize, f64)>) -> Vec<(usize, usize, f64)> {
+pub fn sort_pairs_by_distance(mut pairs: Vec<(usize, usize, f64)>) -> Vec<(usize, usize, f64)> {
     pairs.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
     pairs
 }
 
-fn select_closest_unconnected_pairs(
+pub fn select_closest_unconnected_pairs(
     coordinates: &[Coordinate],
     sorted_pairs: &[(usize, usize, f64)],
-    max_connections: usize,
+    max_pairs_to_consider: usize,
 ) -> Vec<(usize, usize)> {
     let mut connections = Vec::new();
     let mut uf = UnionFind::new(coordinates.len());
 
-    for &(i, j, _) in sorted_pairs {
-        if connections.len() >= max_connections {
-            break;
-        }
-
+    for &(i, j, _) in sorted_pairs.iter().take(max_pairs_to_consider) {
         // Only connect pairs that aren't already in the same circuit
         if uf.find(i) != uf.find(j) {
             uf.union(i, j);
