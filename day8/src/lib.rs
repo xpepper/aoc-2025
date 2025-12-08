@@ -67,6 +67,44 @@ pub fn calculate_all_pair_distances(coordinates: &[Coordinate]) -> Vec<(usize, u
     pairs
 }
 
+pub fn get_all_circuit_sizes(
+    coordinates: &[Coordinate],
+    connections: &[(usize, usize)],
+) -> Vec<usize> {
+    let mut uf = build_circuits(coordinates.len());
+    apply_connections(&mut uf, connections);
+    extract_and_sort_circuit_sizes(coordinates.len(), &mut uf)
+}
+
+fn build_circuits(num_coordinates: usize) -> UnionFind {
+    UnionFind::new(num_coordinates)
+}
+
+fn apply_connections(uf: &mut UnionFind, connections: &[(usize, usize)]) {
+    for &(i, j) in connections {
+        uf.union(i, j);
+    }
+}
+
+fn extract_and_sort_circuit_sizes(num_coordinates: usize, uf: &mut UnionFind) -> Vec<usize> {
+    let mut circuit_sizes = collect_unique_circuit_sizes(num_coordinates, uf);
+    sort_circuit_sizes_descending(&mut circuit_sizes);
+    circuit_sizes
+}
+
+fn collect_unique_circuit_sizes(num_coordinates: usize, uf: &mut UnionFind) -> Vec<usize> {
+    let mut unique_sizes = std::collections::HashSet::new();
+    for i in 0..num_coordinates {
+        let size = uf.circuit_size(i);
+        unique_sizes.insert(size);
+    }
+    unique_sizes.into_iter().collect()
+}
+
+fn sort_circuit_sizes_descending(sizes: &mut [usize]) {
+    sizes.sort_by(|a, b| b.cmp(a));
+}
+
 #[derive(Debug, Clone)]
 pub struct UnionFind {
     parent: Vec<usize>,
@@ -148,6 +186,27 @@ mod tests {
         // Distance should be sqrt(169) = 13.0
         let dist = coord1.distance_from(coord2);
         assert_eq!(dist, 13.0);
+    }
+
+    #[test]
+    fn test_get_all_circuit_sizes() {
+        let coords = vec![
+            Coordinate::new(0, 0, 0),
+            Coordinate::new(1, 0, 0),
+            Coordinate::new(0, 1, 0),
+            Coordinate::new(10, 10, 10),
+            Coordinate::new(10, 11, 10),
+        ];
+
+        // Connect first three into one circuit (0-1, 1-2)
+        // Connect last two into another circuit (3-4)
+        let connections = vec![(0, 1), (1, 2), (3, 4)];
+        let circuit_sizes = get_all_circuit_sizes(&coords, &connections);
+
+        // Should have two circuits: one of size 3, one of size 2
+        assert_eq!(circuit_sizes.len(), 2);
+        assert!(circuit_sizes.contains(&3));
+        assert!(circuit_sizes.contains(&2));
     }
 
     #[test]
