@@ -1,4 +1,4 @@
-use day8::solve_playground_problem;
+use day8::{solve_playground_problem, solve_playground_problem_part_two};
 use std::fs;
 
 #[test]
@@ -63,4 +63,37 @@ fn test_known_example_from_readme() {
 
     let result = solve_playground_problem(input, 10);
     assert_eq!(result, 40, "Example should give result 40, got {}", result);
+}
+
+#[test]
+fn test_part_two_example() {
+    let input = "162,817,812
+57,618,57
+906,360,560
+592,479,940
+352,342,300
+466,668,158
+542,29,236
+431,825,988
+739,650,466
+52,470,668
+216,146,977
+819,987,18
+117,168,530
+805,96,715
+346,949,466
+970,615,88
+941,993,340
+862,61,35
+984,92,344
+425,690,689";
+
+    // According to the README, the final connection should be between (216,146,977) and (117,168,530)
+    // Multiplying their X coordinates: 216 * 117 = 25272
+    let result = solve_playground_problem_part_two(input);
+    assert_eq!(
+        result, 25272,
+        "Part Two example should give result 25272, got {}",
+        result
+    );
 }

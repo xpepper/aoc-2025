@@ -151,6 +151,53 @@ fn calculate_product_of_largest_circuits(circuit_sizes: &[usize]) -> u64 {
     }
 }
 
+pub fn solve_playground_problem_part_two(input: &str) -> u64 {
+    let coordinates = parse_coordinates(input).unwrap();
+    let sorted_pairs = get_sorted_pair_distances(&coordinates);
+    let final_connection = find_final_unifying_connection(&coordinates, &sorted_pairs);
+    multiply_x_coordinates_of_connection(&coordinates, final_connection)
+}
+
+fn get_sorted_pair_distances(coordinates: &[Coordinate]) -> Vec<(usize, usize, f64)> {
+    let all_pairs = calculate_all_pair_distances(coordinates);
+    sort_pairs_by_distance(all_pairs)
+}
+
+fn find_final_unifying_connection(
+    coordinates: &[Coordinate],
+    sorted_pairs: &[(usize, usize, f64)],
+) -> Option<(usize, usize)> {
+    let mut uf = UnionFind::new(coordinates.len());
+    let mut last_connection: Option<(usize, usize)> = None;
+
+    for &(i, j, _) in sorted_pairs {
+        if uf.find(i) != uf.find(j) {
+            uf.union(i, j);
+            last_connection = Some((i, j));
+
+            if is_fully_connected(coordinates.len(), &mut uf, 0) {
+                break;
+            }
+        }
+    }
+
+    last_connection
+}
+
+fn is_fully_connected(num_coordinates: usize, uf: &mut UnionFind, sample_index: usize) -> bool {
+    uf.circuit_size(sample_index) == num_coordinates
+}
+
+fn multiply_x_coordinates_of_connection(
+    coordinates: &[Coordinate],
+    connection: Option<(usize, usize)>,
+) -> u64 {
+    match connection {
+        Some((idx1, idx2)) => coordinates[idx1].x as u64 * coordinates[idx2].x as u64,
+        None => 0,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct UnionFind {
     parent: Vec<usize>,
