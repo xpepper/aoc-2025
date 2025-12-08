@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Point {
     pub x: usize,
     pub y: usize,
@@ -58,35 +58,49 @@ pub fn parse(input: &str) -> Grid {
     Grid::from_str(input).expect("Invalid grid format")
 }
 
-pub fn solve(input: &str) -> u64 {
-    let grid = parse(input);
-    let mut beams = vec![grid.start.clone()];
-    let mut splits = 0;
+struct Simulation {
+    grid: Grid,
+    beams: Vec<Point>,
+    splits: u64,
+}
 
-    while !beams.is_empty() {
+impl Simulation {
+    fn new(grid: Grid) -> Self {
+        let beams = vec![grid.start.clone()];
+        Self {
+            grid,
+            beams,
+            splits: 0,
+        }
+    }
+
+    fn run(&mut self) -> u64 {
+        while !self.beams.is_empty() {
+            self.step();
+        }
+        self.splits
+    }
+
+    fn step(&mut self) {
         let mut next_beams = Vec::new();
 
-        for beam in beams {
-            // Move beam down
+        for beam in &self.beams {
             let next_pos = Point {
                 x: beam.x,
                 y: beam.y + 1,
             };
 
-            if let Some(cell) = grid.get(&next_pos) {
+            if let Some(cell) = self.grid.get(&next_pos) {
                 match cell {
                     '^' => {
-                        splits += 1;
-                        // Split: create two new beams at left and right of splitter
-                        // Check bounds for left beam
+                        self.splits += 1;
                         if next_pos.x > 0 {
                             next_beams.push(Point {
                                 x: next_pos.x - 1,
                                 y: next_pos.y,
                             });
                         }
-                        // Check bounds for right beam
-                        if next_pos.x + 1 < grid.width {
+                        if next_pos.x + 1 < self.grid.width {
                             next_beams.push(Point {
                                 x: next_pos.x + 1,
                                 y: next_pos.y,
@@ -94,19 +108,21 @@ pub fn solve(input: &str) -> u64 {
                         }
                     }
                     _ => {
-                        // Continue down
                         next_beams.push(next_pos);
                     }
                 }
             }
         }
-        // Deduplicate beams
-        next_beams.sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));
+        next_beams.sort();
         next_beams.dedup();
-        beams = next_beams;
+        self.beams = next_beams;
     }
+}
 
-    splits
+pub fn solve(input: &str) -> u64 {
+    let grid = parse(input);
+    let mut simulation = Simulation::new(grid);
+    simulation.run()
 }
 
 #[cfg(test)]
