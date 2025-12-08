@@ -14,7 +14,6 @@ pub fn distance(coord1: (i32, i32, i32), coord2: (i32, i32, i32)) -> f64 {
 }
 
 pub struct UnionFind {
-    #[allow(dead_code)]
     parent: Vec<usize>,
     size: Vec<usize>,
 }
