@@ -27,6 +27,13 @@ impl UnionFind {
         }
     }
 
+    pub fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
     pub fn circuit_size(&self, x: usize) -> usize {
         self.size[x]
     }
@@ -61,5 +68,14 @@ mod tests {
         assert_eq!(uf.circuit_size(0), 1);
         assert_eq!(uf.circuit_size(1), 1);
         assert_eq!(uf.circuit_size(4), 1);
+    }
+
+    #[test]
+    fn test_union_find_find() {
+        let mut uf = UnionFind::new(5);
+        // Initially, each element is its own parent (root)
+        assert_eq!(uf.find(0), 0);
+        assert_eq!(uf.find(1), 1);
+        assert_eq!(uf.find(4), 4);
     }
 }
