@@ -12,13 +12,11 @@ impl Coordinate {
         Coordinate { x, y, z }
     }
 
-    /// Calculate the distance from this coordinate to another
     pub fn distance_from(&self, other: Coordinate) -> f64 {
         let squared_distance = self.squared_distance_from(other);
         (squared_distance as f64).sqrt()
     }
 
-    /// Calculate squared distance for performance comparisons
     pub fn squared_distance_from(&self, other: Coordinate) -> i64 {
         let dx = (other.x - self.x) as i64;
         let dy = (other.y - self.y) as i64;
