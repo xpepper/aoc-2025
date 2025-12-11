@@ -40,6 +40,10 @@ pub fn largest_rectangle_area(input: &str) -> u64 {
     max_rectangle_area(&tiles)
 }
 
+pub fn solve_part_one(input: &str) -> u64 {
+    largest_rectangle_area(input)
+}
+
 fn parse_tiles(input: &str) -> Vec<Tile> {
     input
         .lines()
@@ -76,6 +80,12 @@ mod tests {
     #[test]
     fn computes_max_rectangle_area_for_sample() {
         let area = largest_rectangle_area(SAMPLE);
+        assert_eq!(area, 50);
+    }
+
+    #[test]
+    fn solve_part_one_returns_sample_answer() {
+        let area = solve_part_one(SAMPLE);
         assert_eq!(area, 50);
     }
 }
