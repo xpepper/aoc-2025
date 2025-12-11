@@ -88,4 +88,11 @@ mod tests {
         let area = solve_part_one(SAMPLE);
         assert_eq!(area, 50);
     }
+
+    #[test]
+    fn solve_part_one_returns_puzzle_answer() {
+        let input = include_str!("../puzzle-input.txt");
+        let area = solve_part_one(input);
+        assert_eq!(area, 4_745_816_424);
+    }
 }
