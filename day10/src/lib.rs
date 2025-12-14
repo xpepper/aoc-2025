@@ -103,20 +103,29 @@ fn toggle_lights(lights: &mut [bool], button: &[usize]) {
 }
 
 fn min_presses_joltage(machine: &MachineJoltage) -> usize {
-    // Use BFS to find minimum button presses
-    use std::collections::{HashMap, VecDeque};
+    // Use Dijkstra's algorithm to find minimum button presses
+    use std::cmp::Reverse;
+    use std::collections::{BinaryHeap, HashMap};
 
     let target = &machine.target_joltage;
-    let mut queue = VecDeque::new();
-    let mut visited = HashMap::new();
+    let mut heap = BinaryHeap::new();
+    let mut best = HashMap::new();
 
     let initial = vec![0; target.len()];
-    queue.push_back((initial.clone(), 0));
-    visited.insert(initial, 0);
+    heap.push(Reverse((0, initial.clone())));
+    best.insert(initial, 0);
 
-    while let Some((state, presses)) = queue.pop_front() {
+    while let Some(Reverse((presses, state))) = heap.pop() {
+        // If we reached the target, return the number of presses
         if &state == target {
             return presses;
+        }
+
+        // Skip if we've already found a better path to this state
+        if let Some(&best_presses) = best.get(&state) {
+            if presses > best_presses {
+                continue;
+            }
         }
 
         // Try pressing each button
@@ -133,9 +142,14 @@ fn min_presses_joltage(machine: &MachineJoltage) -> usize {
                 .all(|(current, tgt)| current <= tgt);
 
             if valid {
-                if !visited.contains_key(&new_state) {
-                    visited.insert(new_state.clone(), presses + 1);
-                    queue.push_back((new_state, presses + 1));
+                let new_presses = presses + 1;
+                let is_better = best
+                    .get(&new_state)
+                    .map_or(true, |&prev| new_presses < prev);
+
+                if is_better {
+                    best.insert(new_state.clone(), new_presses);
+                    heap.push(Reverse((new_presses, new_state)));
                 }
             }
         }
