@@ -103,38 +103,90 @@ fn toggle_lights(lights: &mut [bool], button: &[usize]) {
 }
 
 fn min_presses_joltage(machine: &MachineJoltage) -> usize {
-    // Use Dijkstra's algorithm to find minimum button presses
+    // Try a simpler greedy approach with local search
+    let target = &machine.target_joltage;
+    let num_counters = target.len();
+    let num_buttons = machine.buttons.len();
+
+    // Start with a simple greedy solution
+    let mut button_presses = vec![0; num_buttons];
+    let mut current = vec![0; num_counters];
+
+    // Greedy: repeatedly press the button that reduces the maximum gap
+    for _ in 0..10000 { // Limit iterations
+        if &current == target {
+            return button_presses.iter().sum();
+        }
+
+        // Find the best button to press
+        let mut best_button = None;
+        let mut best_score = i32::MIN;
+
+        for (button_idx, button) in machine.buttons.iter().enumerate() {
+            // Check if pressing this button would help
+            let mut score = 0;
+            let mut would_overshoot = false;
+
+            for &counter_idx in button {
+                if current[counter_idx] < target[counter_idx] {
+                    score += 1; // Helps this counter
+                } else if current[counter_idx] >= target[counter_idx] {
+                    would_overshoot = true;
+                    break;
+                }
+            }
+
+            if !would_overshoot && score > best_score {
+                best_score = score;
+                best_button = Some(button_idx);
+            }
+        }
+
+        if let Some(button_idx) = best_button {
+            button_presses[button_idx] += 1;
+            for &counter_idx in &machine.buttons[button_idx] {
+                current[counter_idx] += 1;
+            }
+        } else {
+            // No button helps without overshooting - problem unsolvable with greedy
+            break;
+        }
+    }
+
+    // If greedy didn't work, try limited BFS from the greedy solution
+    if &current != target {
+        // Fall back to exhaustive search with small limit
+        return limited_search(machine);
+    }
+
+    button_presses.iter().sum()
+}
+
+fn limited_search(machine: &MachineJoltage) -> usize {
     use std::cmp::Reverse;
-    use std::collections::{BinaryHeap, HashMap};
+    use std::collections::{BinaryHeap, HashSet};
 
     let target = &machine.target_joltage;
     let mut heap = BinaryHeap::new();
-    let mut best = HashMap::new();
+    let mut visited = HashSet::new();
 
     let initial = vec![0; target.len()];
     heap.push(Reverse((0, initial.clone())));
-    best.insert(initial, 0);
+    visited.insert(initial);
+
+    let max_states = 1_000_000; // Limit state exploration
+    let mut states_explored = 0;
 
     while let Some(Reverse((presses, state))) = heap.pop() {
-        // If we reached the target, return the number of presses
         if &state == target {
             return presses;
         }
 
-        // Skip if we've already found a better path to this state
-        if let Some(&best_presses) = best.get(&state) {
-            if presses > best_presses {
-                continue;
-            }
+        states_explored += 1;
+        if states_explored > max_states {
+            break;
         }
 
-        // Early termination: if we're already using too many presses
-        let max_target = target.iter().max().unwrap();
-        if presses > max_target * 2 {
-            continue;
-        }
-
-        // Try pressing each button
         for button in &machine.buttons {
             let mut new_state = state.clone();
             let mut useful = false;
@@ -146,27 +198,17 @@ fn min_presses_joltage(machine: &MachineJoltage) -> usize {
                 new_state[idx] += 1;
             }
 
-            // Skip if this button doesn't help reach any target
             if !useful {
                 continue;
             }
 
-            // Only explore states that don't exceed the target
             let valid = new_state
                 .iter()
                 .zip(target)
                 .all(|(current, tgt)| current <= tgt);
 
-            if valid {
-                let new_presses = presses + 1;
-                let is_better = best
-                    .get(&new_state)
-                    .map_or(true, |&prev| new_presses < prev);
-
-                if is_better {
-                    best.insert(new_state.clone(), new_presses);
-                    heap.push(Reverse((new_presses, new_state)));
-                }
+            if valid && visited.insert(new_state.clone()) {
+                heap.push(Reverse((presses + 1, new_state)));
             }
         }
     }

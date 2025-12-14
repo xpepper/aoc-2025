@@ -104,4 +104,3 @@ mod tests {
         assert_eq!(4, solve_part2(INPUT));
     }
 }
-pub fn add(left: u64, right: u64) -> u64 {
