@@ -8,7 +8,8 @@ fn main() {
     let result1 = solve(&input);
     println!("Part 1: {}", result1);
 
-    println!("Solving Part 2...");
+    println!("\nSolving Part 2...");
+    let start = std::time::Instant::now();
     let result2 = solve_part2(&input);
-    println!("Part 2: {}", result2);
+    println!("Part 2: {} (took {:?})", result2, start.elapsed());
 }

@@ -103,64 +103,24 @@ fn toggle_lights(lights: &mut [bool], button: &[usize]) {
 }
 
 fn min_presses_joltage(machine: &MachineJoltage) -> usize {
-    // Solve as a system of linear equations: A * x = target
-    // where A[counter][button] = 1 if button affects counter
-    // and x[button] = number of times to press button
-
-    let num_counters = machine.target_joltage.len();
-    let num_buttons = machine.buttons.len();
-
-    // Build the constraint matrix
-    let mut matrix: Vec<Vec<f64>> = vec![vec![0.0; num_buttons + 1]; num_counters];
-
-    for (button_idx, button) in machine.buttons.iter().enumerate() {
-        for &counter_idx in button {
-            matrix[counter_idx][button_idx] = 1.0;
-        }
+    // 1) Parametric linear solve for underdetermined systems (fast exact)
+    if let Some(total) = solve_with_free_variables(machine) {
+        return total;
     }
 
-    // Add target values as the last column
-    for (counter_idx, &target) in machine.target_joltage.iter().enumerate() {
-        matrix[counter_idx][num_buttons] = target as f64;
+    // 2) A* search with admissible heuristic (much faster than Dijkstra)
+    if let Some(total) = a_star_search(machine) {
+        return total;
     }
 
-    // Solve using Gaussian elimination
-    if let Some(solution) = solve_linear_system(&mut matrix, num_buttons) {
-        // Check if solution is non-negative integers (or very close)
-        let mut total_presses = 0;
-        let mut all_valid = true;
-
-        for &val in &solution {
-            if val < -0.0001 {
-                all_valid = false;
-                break;
-            }
-            let rounded = val.round();
-            if (val - rounded).abs() > 0.0001 {
-                all_valid = false;
-                break;
-            }
-            total_presses += rounded as usize;
-        }
-
-        if all_valid {
-            // Verify the solution
-            let mut result = vec![0; num_counters];
-            for (button_idx, &presses) in solution.iter().enumerate() {
-                let presses = presses.round() as usize;
-                for &counter_idx in &machine.buttons[button_idx] {
-                    result[counter_idx] += presses;
-                }
-            }
-
-            if result == machine.target_joltage {
-                return total_presses;
-            }
-        }
+    // 3) Greedy (quick upper bound; rarely exact but cheap)
+    if let Some(total) = greedy_solve(machine) {
+        return total;
     }
 
-    // If linear algebra doesn't give us a solution, fall back to search
-    limited_search(machine)
+    // 4) Fallback limited search (guarded)
+    let total = limited_search(machine);
+    if total == usize::MAX { 0 } else { total }
 }
 
 // Gaussian elimination to solve Ax = b
@@ -214,57 +174,231 @@ fn solve_linear_system(matrix: &mut [Vec<f64>], num_vars: usize) -> Option<Vec<f
     Some(solution)
 }
 
-fn limited_search(machine: &MachineJoltage) -> usize {
+// Row-reduced echelon form to identify pivot and free variables and minimize presses
+fn solve_with_free_variables(machine: &MachineJoltage) -> Option<usize> {
+    let m = machine.target_joltage.len();
+    let n = machine.buttons.len();
+
+    // Build augmented matrix [A | b]
+    let mut mat: Vec<Vec<f64>> = vec![vec![0.0; n + 1]; m];
+    for (j, button) in machine.buttons.iter().enumerate() {
+        for &i in button {
+            mat[i][j] = 1.0;
+        }
+    }
+    for (i, &t) in machine.target_joltage.iter().enumerate() {
+        mat[i][n] = t as f64;
+    }
+
+    // RREF
+    let mut pivot_cols: Vec<usize> = Vec::new();
+    let mut row = 0usize;
+    for col in 0..n {
+        // find pivot
+        let mut max_row = row;
+        for r in row..m {
+            if mat[r][col].abs() > mat[max_row][col].abs() {
+                max_row = r;
+            }
+        }
+        if mat[max_row][col].abs() < 1e-10 {
+            continue;
+        }
+        if max_row != row { mat.swap(row, max_row); }
+        let pivot = mat[row][col];
+        for c in 0..=n { mat[row][c] /= pivot; }
+        for r in 0..m {
+            if r != row {
+                let f = mat[r][col];
+                for c in 0..=n { mat[r][c] -= f * mat[row][c]; }
+            }
+        }
+        pivot_cols.push(col);
+        row += 1;
+        if row >= m { break; }
+    }
+    let free_cols: Vec<usize> = (0..n).filter(|c| !pivot_cols.contains(c)).collect();
+
+    // Unique solution case
+    if free_cols.is_empty() {
+        let mut sol = vec![0.0; n];
+        for (ri, &pc) in pivot_cols.iter().enumerate() {
+            sol[pc] = mat[ri][n];
+        }
+        return validate_and_sum(&sol);
+    }
+
+    // Enumerate small number of free variables
+    let max_val = *machine.target_joltage.iter().max().unwrap_or(&0);
+    if free_cols.len() <= 3 {
+        let mut min_sum = usize::MAX;
+        let mut free_vals: Vec<usize> = Vec::new();
+        fn try_combo(
+            depth: usize,
+            free_cols: &[usize],
+            free_vals: &mut Vec<usize>,
+            mat: &[Vec<f64>],
+            pivot_cols: &[usize],
+            n: usize,
+            min_sum: &mut usize,
+        ) {
+            if depth == free_cols.len() {
+                let mut sol = vec![0.0; n];
+                for (i, &v) in free_vals.iter().enumerate() { sol[free_cols[i]] = v as f64; }
+                for (ri, &pc) in pivot_cols.iter().enumerate() {
+                    let mut val = mat[ri][n];
+                    for (i, &fc) in free_cols.iter().enumerate() { val -= mat[ri][fc] * free_vals[i] as f64; }
+                    sol[pc] = val;
+                }
+                if let Some(sum) = validate_and_sum(&sol) { *min_sum = (*min_sum).min(sum); }
+                return;
+            }
+            // Simple bound: iterate up to observed RHS max to keep space small
+            let bound = 64usize; // heuristic cap; targets are ~40-86
+            for v in 0..=bound {
+                free_vals.push(v);
+                try_combo(depth + 1, free_cols, free_vals, mat, pivot_cols, n, min_sum);
+                free_vals.pop();
+            }
+        }
+        try_combo(0, &free_cols, &mut free_vals, &mat, &pivot_cols, n, &mut min_sum);
+        if min_sum != usize::MAX { return Some(min_sum); }
+    }
+    None
+}
+
+fn validate_and_sum(solution: &[f64]) -> Option<usize> {
+    let mut total = 0usize;
+    for &v in solution {
+        if v < -0.0001 { return None; }
+        let r = v.round();
+        if (v - r).abs() > 0.0001 { return None; }
+        total += r as usize;
+    }
+    Some(total)
+}
+
+// A* with admissible heuristic: max remaining presses needed on any counter
+fn a_star_search(machine: &MachineJoltage) -> Option<usize> {
+    use std::collections::{BinaryHeap, HashMap};
     use std::cmp::Reverse;
-    use std::collections::{BinaryHeap, HashSet};
 
     let target = &machine.target_joltage;
-    let mut heap = BinaryHeap::new();
-    let mut visited = HashSet::new();
+    let initial = vec![0usize; target.len()];
+    let mut heap: BinaryHeap<Reverse<(usize, usize, Vec<usize>)>> = BinaryHeap::new();
+    let mut best_g: HashMap<Vec<usize>, usize> = HashMap::new();
 
-    let initial = vec![0; target.len()];
-    heap.push(Reverse((0, initial.clone())));
-    visited.insert(initial);
+    let h0 = heuristic_max_remaining(target, &initial);
+    heap.push(Reverse((h0, 0, initial.clone())));
+    best_g.insert(initial, 0);
 
-    let max_states = 1_000_000; // Limit state exploration
-    let mut states_explored = 0;
+    let max_states = 5_000_000usize; // tighter cap than Dijkstra
+    let mut explored = 0usize;
 
-    while let Some(Reverse((presses, state))) = heap.pop() {
-        if &state == target {
-            return presses;
-        }
+    while let Some(Reverse((_, g, state))) = heap.pop() {
+        explored += 1;
+        if explored > max_states { break; }
+        if &state == target { return Some(g); }
 
-        states_explored += 1;
-        if states_explored > max_states {
-            break;
-        }
+        if let Some(&bg) = best_g.get(&state) { if g > bg { continue; } }
 
         for button in &machine.buttons {
-            let mut new_state = state.clone();
+            let mut ns = state.clone();
             let mut useful = false;
-
             for &idx in button {
-                if new_state[idx] < target[idx] {
-                    useful = true;
+                if ns[idx] < target[idx] { useful = true; }
+                ns[idx] += 1;
+            }
+            if !useful { continue; }
+            if !ns.iter().zip(target.iter()).all(|(c, t)| c <= t) { continue; }
+
+            let ng = g + 1;
+            if let Some(&bg) = best_g.get(&ns) { if ng >= bg { continue; } }
+            best_g.insert(ns.clone(), ng);
+            let h = heuristic_max_remaining(target, &ns);
+            let f = ng + h;
+            heap.push(Reverse((f, ng, ns)));
+        }
+    }
+    None
+}
+
+fn heuristic_max_remaining(target: &[usize], current: &[usize]) -> usize {
+    target.iter().zip(current.iter()).map(|(t, c)| t.saturating_sub(*c)).max().unwrap_or(0)
+}
+
+fn greedy_solve(machine: &MachineJoltage) -> Option<usize> {
+    // Try a greedy approach: for each button, press it as many times as possible
+    // without overshooting any counter
+    let target = &machine.target_joltage;
+    let mut state = vec![0; target.len()];
+    let mut presses = vec![0; machine.buttons.len()];
+
+    // Calculate maximum possible presses for each button without overshooting
+    loop {
+        let mut made_progress = false;
+
+        for (button_idx, button) in machine.buttons.iter().enumerate() {
+            // Find how many times we can press this button
+            let mut max_presses = usize::MAX;
+            for &counter_idx in button {
+                let remaining = target[counter_idx].saturating_sub(state[counter_idx]);
+                max_presses = max_presses.min(remaining);
+            }
+
+            if max_presses > 0 && max_presses != usize::MAX {
+                // Press this button max_presses times
+                for &counter_idx in button {
+                    state[counter_idx] += max_presses;
                 }
-                new_state[idx] += 1;
+                presses[button_idx] += max_presses;
+                made_progress = true;
             }
+        }
 
-            if !useful {
-                continue;
-            }
-
-            let valid = new_state
-                .iter()
-                .zip(target)
-                .all(|(current, tgt)| current <= tgt);
-
-            if valid && visited.insert(new_state.clone()) {
-                heap.push(Reverse((presses + 1, new_state)));
-            }
+        if !made_progress {
+            break;
         }
     }
 
+    if state == *target {
+        Some(presses.iter().sum())
+    } else {
+        None
+    }
+}
+
+fn limited_search(machine: &MachineJoltage) -> usize {
+    // Keep as very conservative fallback; prefer A* above
+    use std::cmp::Reverse;
+    use std::collections::{BinaryHeap, HashMap};
+
+    let target = &machine.target_joltage;
+    let initial = vec![0usize; target.len()];
+    let mut heap: BinaryHeap<Reverse<(usize, Vec<usize>)>> = BinaryHeap::new();
+    let mut best: HashMap<Vec<usize>, usize> = HashMap::new();
+    heap.push(Reverse((0, initial.clone())));
+    best.insert(initial, 0);
+
+    let max_states = 1_000_000usize;
+    let mut explored = 0usize;
+    while let Some(Reverse((g, state))) = heap.pop() {
+        explored += 1;
+        if explored > max_states { break; }
+        if &state == target { return g; }
+        if let Some(&bg) = best.get(&state) { if g > bg { continue; } }
+        for button in &machine.buttons {
+            let mut ns = state.clone();
+            let mut useful = false;
+            for &idx in button { if ns[idx] < target[idx] { useful = true; } ns[idx] += 1; }
+            if !useful { continue; }
+            if !ns.iter().zip(target.iter()).all(|(c, t)| c <= t) { continue; }
+            let ng = g + 1;
+            if let Some(&bg) = best.get(&ns) { if ng >= bg { continue; } }
+            best.insert(ns.clone(), ng);
+            heap.push(Reverse((ng, ns)));
+        }
+    }
     usize::MAX
 }
 
