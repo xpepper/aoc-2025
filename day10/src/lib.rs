@@ -243,6 +243,7 @@ fn gaussian_elimination_integers(
             for r in 0..num_rows {
                 if r != current_row && matrix[r][pivot_col] != 0 {
                     let factor = matrix[r][pivot_col];
+                    #[allow(clippy::needless_range_loop)]
                     for c in 0..=num_buttons {
                         matrix[r][c] = matrix[r][c] * pivot_val - matrix[current_row][c] * factor;
                     }
@@ -256,11 +257,21 @@ fn gaussian_elimination_integers(
     row_pivot
 }
 
-/// Finds minimum non-negative integer solution with smart pruning
+struct SearchContext<'a> {
+    matrix: &'a [Vec<i64>],
+    col_to_pivot_row: &'a [Option<usize>],
+    num_buttons: usize,
+    reduced_costs: &'a [f64],
+    base_cost: f64,
+    global_bounds: &'a [i64],
+}
+
+/// Finds minimum non-negative integer solution with smart pruning and reduced costs
 fn find_minimum_solution_integers(
     matrix: &[Vec<i64>],
     row_pivot: &[Option<usize>],
     num_buttons: usize,
+    global_bounds: &[i64],
 ) -> i64 {
     // Build column to pivot row mapping
     let mut col_to_pivot_row: Vec<Option<usize>> = vec![None; num_buttons];
@@ -278,11 +289,49 @@ fn find_minimum_solution_integers(
     if free_vars.is_empty() {
         let solution = compute_solution(&[], &free_vars, matrix, &col_to_pivot_row, num_buttons);
         return if let Some(sol) = solution {
-            sol.iter().sum()
+            if sol.iter().all(|&x| x >= 0) {
+                sol.iter().sum()
+            } else {
+                i64::MAX
+            }
         } else {
             i64::MAX
         };
     }
+
+    // Calculate reduced costs
+    let mut reduced_costs: Vec<f64> = Vec::with_capacity(free_vars.len());
+    let mut base_cost: f64 = 0.0;
+
+    // Add base cost from pivots assuming free vars = 0
+    for col in 0..num_buttons {
+        if let Some(row) = col_to_pivot_row[col] {
+            let pivot_val = matrix[row][col] as f64;
+            let rhs = matrix[row][num_buttons] as f64;
+            base_cost += rhs / pivot_val;
+        }
+    }
+
+    for &j in &free_vars {
+        let mut cost = 1.0;
+        for col in 0..num_buttons {
+            if let Some(row) = col_to_pivot_row[col] {
+                let pivot_val = matrix[row][col] as f64;
+                let coeff = matrix[row][j] as f64;
+                cost -= coeff / pivot_val;
+            }
+        }
+        reduced_costs.push(cost);
+    }
+
+    let ctx = SearchContext {
+        matrix,
+        col_to_pivot_row: &col_to_pivot_row,
+        num_buttons,
+        reduced_costs: &reduced_costs,
+        base_cost,
+        global_bounds,
+    };
 
     // Search with branch and bound
     let mut min_presses = i64::MAX;
@@ -292,85 +341,130 @@ fn find_minimum_solution_integers(
         free_vars: &[usize],
         idx: usize,
         values: &mut Vec<i64>,
-        matrix: &[Vec<i64>],
-        col_to_pivot_row: &[Option<usize>],
-        num_buttons: usize,
+        ctx: &SearchContext,
         min_presses: &mut i64,
     ) {
-        // Prune: current sum of free vars already >= best
-        let current_sum: i64 = values.iter().sum();
-        if current_sum >= *min_presses {
+        // Prune with reduced costs
+        let mut estimated_min = ctx.base_cost;
+        for (i, &val) in values.iter().enumerate() {
+            estimated_min += ctx.reduced_costs[i] * (val as f64);
+        }
+
+        let future_positive = ctx.reduced_costs[idx..].iter().all(|&c| c >= -1e-9);
+
+        if future_positive && estimated_min >= (*min_presses as f64) - 1e-9 {
             return;
         }
 
         if idx == free_vars.len() {
             // Compute full solution
-            if let Some(solution) =
-                compute_solution(values, free_vars, matrix, col_to_pivot_row, num_buttons)
+            if let Some(solution) = compute_solution(
+                values,
+                free_vars,
+                ctx.matrix,
+                ctx.col_to_pivot_row,
+                ctx.num_buttons,
+            )
+            .filter(|s| s.iter().all(|&x| x >= 0))
             {
-                if solution.iter().all(|&x| x >= 0) {
-                    let total: i64 = solution.iter().sum();
-                    *min_presses = (*min_presses).min(total);
-                }
+                let total: i64 = solution.iter().sum();
+                *min_presses = (*min_presses).min(total);
             }
             return;
         }
 
         // Compute upper bound for this free variable
-        // based on non-negativity constraints of pivot variables
-        let max_val = compute_max_free_value(
-            idx,
-            values,
-            free_vars,
-            matrix,
-            col_to_pivot_row,
-            num_buttons,
-        );
+        let max_val = compute_max_free_value(idx, values, free_vars, ctx, *min_presses);
 
-        for v in 0..=max_val {
-            values.push(v);
-            search(
-                free_vars,
-                idx + 1,
-                values,
-                matrix,
-                col_to_pivot_row,
-                num_buttons,
-                min_presses,
-            );
-            values.pop();
+        // Heuristic: if reduced_cost < 0, try large values first
+        let coin = ctx.reduced_costs[idx];
+
+        if coin < -1e-9 {
+            for v in (0..=max_val).rev() {
+                values.push(v);
+                search(free_vars, idx + 1, values, ctx, min_presses);
+                values.pop();
+            }
+        } else {
+            for v in 0..=max_val {
+                values.push(v);
+                search(free_vars, idx + 1, values, ctx, min_presses);
+                values.pop();
+            }
         }
     }
 
-    search(
-        &free_vars,
-        0,
-        &mut values,
-        matrix,
-        &col_to_pivot_row,
-        num_buttons,
-        &mut min_presses,
-    );
+    search(&free_vars, 0, &mut values, &ctx, &mut min_presses);
 
     min_presses
 }
 
 /// Compute upper bound for free variable at index idx
 fn compute_max_free_value(
-    _idx: usize,
-    _values: &[i64],
-    _free_vars: &[usize],
-    matrix: &[Vec<i64>],
-    _col_to_pivot_row: &[Option<usize>],
-    num_buttons: usize,
+    idx: usize,
+    values: &[i64],
+    free_vars: &[usize],
+    ctx: &SearchContext,
+    current_min_total: i64,
 ) -> i64 {
-    // Simple bound: max of target values
-    // A more sophisticated bound would analyze the linear dependencies
-    matrix
-        .iter()
-        .map(|row| row[num_buttons].abs())
-        .max()
-        .unwrap_or(0)
+    // 1. Bound from current best solution (minimization)
+    let current_sum: i64 = values.iter().sum();
+    let mut max_val = if current_min_total == i64::MAX {
+        i64::MAX
+    } else {
+        current_min_total - current_sum
+    };
+
+    // 2. Bound from global input constraints
+    let current_col = free_vars[idx];
+    max_val = max_val.min(ctx.global_bounds[current_col]);
+
+    // 3. Bounds from pivot constraints (non-negativity)
+    for (row, current_row_vec) in ctx.matrix.iter().enumerate() {
+        // Find which column is the pivot for this row
+        let pivot_col_opt = (0..ctx.num_buttons).find(|&c| ctx.col_to_pivot_row[c] == Some(row));
+
+        if let Some(pivot_col) = pivot_col_opt {
+            let pivot_coeff = current_row_vec[pivot_col];
+            let rhs = current_row_vec[ctx.num_buttons];
+
+            // Calculate residual from assigned free variables
+            let mut residual = rhs;
+            for (i, &val) in values.iter().enumerate() {
+                let col = free_vars[i];
+                residual -= current_row_vec[col] * val;
+            }
+
+            let coeff = current_row_vec[current_col];
+
+            // Equation: pivot_coeff * x_pivot = residual - coeff * current_val - sum(future)
+            // Need x_pivot >= 0
+
+            if pivot_coeff > 0 {
+                if coeff > 0 {
+                    // Check if future coeffs are all non-negative (worst case is 0)
+                    let future_ok =
+                        ((idx + 1)..free_vars.len()).all(|i| ctx.matrix[row][free_vars[i]] >= 0);
+
+                    if future_ok {
+                        let row_limit = if residual < 0 { -1 } else { residual / coeff };
+                        max_val = max_val.min(row_limit);
+                    }
+                }
+            } else if coeff < 0 {
+                // pivot_coeff < 0
+                let future_coeffs_all_non_pos =
+                    ((idx + 1)..free_vars.len()).all(|i| ctx.matrix[row][free_vars[i]] <= 0);
+
+                if future_coeffs_all_non_pos {
+                    let row_limit = residual / coeff;
+                    max_val = max_val.min(row_limit);
+                }
+            }
+        }
+    }
+
+    max_val.max(-1)
 }
 
 /// Compute solution given free variable values
@@ -397,7 +491,7 @@ fn compute_solution(
                 rhs -= matrix[row][c] * solution[c];
             }
             // Check if divisible
-            if rhs % pivot_val != 0 {
+            if pivot_val == 0 || rhs % pivot_val != 0 {
                 return None;
             }
             solution[col] = rhs / pivot_val;
@@ -408,14 +502,26 @@ fn compute_solution(
 }
 
 /// Solves Part 2: minimum button presses for joltage counters
+/// Solves Part 2: minimum button presses for joltage counters
 fn solve_machine_part2(line: &str) -> i64 {
     let (buttons, joltage) = parse_machine_part2(line);
     let num_buttons = buttons.len();
 
+    // Compute global upper bound for each button
+    let mut bounds = vec![i64::MAX; num_buttons];
+    for (btn_idx, indices) in buttons.iter().enumerate() {
+        for &counter_idx in indices {
+            // Button adds 1 to this counter. Press count <= target joltage
+            if counter_idx < joltage.len() {
+                bounds[btn_idx] = bounds[btn_idx].min(joltage[counter_idx]);
+            }
+        }
+    }
+
     let mut matrix = build_augmented_matrix_i64(&joltage, &buttons);
     let row_pivot = gaussian_elimination_integers(&mut matrix, num_buttons);
 
-    find_minimum_solution_integers(&matrix, &row_pivot, num_buttons)
+    find_minimum_solution_integers(&matrix, &row_pivot, num_buttons, &bounds)
 }
 
 /// Solves for the total minimum button presses for Part 2

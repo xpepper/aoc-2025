@@ -79,3 +79,31 @@ Configuring the third machine's counters requires a minimum of 11 button presses
 So, the fewest button presses required to correctly configure the joltage level counters on all of the machines is 10 + 12 + 11 = 33.
 
 Analyze each machine's joltage requirements and button wiring schematics. What is the fewest button presses required to correctly configure the joltage level counters on all of the machines?
+
+# Solution Approach
+
+## Part 1: Linear Algebra over GF(2)
+The problem asks for the minimum number of button presses to reach a target configuration where lights toggle (XOR operation). This models a system of linear equations over the binary field GF(2).
+
+1.  **Modeling**: Each button press is a variable $x_i \in \{0, 1\}$.
+    -   $Ax = b$ where $A$ is the connectivity matrix and $b$ is the target state.
+2.  **Algorithm**:
+    -   Use **Gaussian Elimination** to reduce the augmented matrix $[A|b]$ to row-echelon form.
+    -   Identify pivot variables and free variables.
+    -   If there are free variables, iterate through all $2^k$ combinations (where $k$ is the number of free variables) to find the solution with the minimum Hamming weight (minimum total presses).
+
+## Part 2: Integer Linear Programming (ILP)
+The problem changes from toggling (XOR) to adding 1. We need to find non-negative integers $x_i \ge 0$ such that $Ax = b$ over the integers, minimizing $\sum x_i$.
+
+1.  **Modeling**:
+    -   $A$ is the same connectivity matrix (0s and 1s).
+    -   $b$ is the vector of joltage requirements.
+    -   We need to solve $Ax = b$ for $x_i \in \mathbb{Z}_{\ge 0}$.
+2.  **Algorithm**:
+    -   Use **Gaussian Elimination** (over Rationals/Integers) to row-reduce the system.
+    -   Express pivot variables as linear functions of free variables: $x_{pivot} = C - \sum k_j x_{free_j}$.
+    -   Use a **Branch and Bound** search on the free variables:
+        -   Iterate possible values for free variables.
+        -   Compute implied values for pivot variables.
+        -   Check if pivot variables are non-negative integers.
+        -   Prune the search space if the partial sum exceeds the current best minimum.
