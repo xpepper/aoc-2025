@@ -218,6 +218,16 @@ pub fn solve(input: &str) -> usize {
         .sum()
 }
 
+pub fn solve_part2(input: &str) -> usize {
+    input
+        .lines()
+        .map(|line| {
+            let machine = parse_machine_part2(line);
+            min_presses_joltage(&machine)
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,5 +305,28 @@ mod tests {
         let input = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}";
         let machine = parse_machine_part2(input);
         assert_eq!(min_presses_joltage(&machine), 10);
+    }
+
+    #[test]
+    fn test_min_presses_joltage_second_machine() {
+        let input = "[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}";
+        let machine = parse_machine_part2(input);
+        assert_eq!(min_presses_joltage(&machine), 12);
+    }
+
+    #[test]
+    fn test_min_presses_joltage_third_machine() {
+        let input = "[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
+        let machine = parse_machine_part2(input);
+        assert_eq!(min_presses_joltage(&machine), 11);
+    }
+
+    #[test]
+    fn test_solve_part2() {
+        let input = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
+
+        assert_eq!(solve_part2(input), 33);
     }
 }
