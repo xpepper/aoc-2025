@@ -1,6 +1,5 @@
 /// Parses indicator diagram like "[.##.]" into target state
 /// '.' = false (off), '#' = true (on)
-#[allow(dead_code)]
 fn parse_indicator_diagram(input: &str) -> Vec<bool> {
     input
         .trim_start_matches('[')
@@ -11,7 +10,6 @@ fn parse_indicator_diagram(input: &str) -> Vec<bool> {
 }
 
 /// Parses button wiring like "(1,3)" into indices to toggle
-#[allow(dead_code)]
 fn parse_button(input: &str) -> Vec<usize> {
     input
         .trim_start_matches('(')
@@ -22,14 +20,11 @@ fn parse_button(input: &str) -> Vec<usize> {
 }
 
 /// Parses a machine line and returns (target_state, buttons)
-#[allow(dead_code)]
 fn parse_machine(line: &str) -> (Vec<bool>, Vec<Vec<usize>>) {
-    // Extract indicator diagram [...]
     let bracket_end = line.find(']').unwrap();
     let indicator = &line[..=bracket_end];
     let target = parse_indicator_diagram(indicator);
 
-    // Extract buttons (...) - ignore joltage {...}
     let rest = &line[bracket_end + 1..];
     let buttons: Vec<Vec<usize>> = rest
         .split_whitespace()
@@ -40,19 +35,14 @@ fn parse_machine(line: &str) -> (Vec<bool>, Vec<Vec<usize>>) {
     (target, buttons)
 }
 
-/// Solves for minimum button presses to achieve target state
-/// Uses Gaussian elimination over GF(2) (binary field)
-#[allow(dead_code)]
-fn solve_machine(line: &str) -> usize {
-    let (target, buttons) = parse_machine(line);
+/// Builds the augmented matrix [A | b] for Gaussian elimination
+/// Each row represents a light, each column a button
+fn build_augmented_matrix(target: &[bool], buttons: &[Vec<usize>]) -> Vec<Vec<u8>> {
     let num_lights = target.len();
     let num_buttons = buttons.len();
-
-    // Build augmented matrix [A | b] where A is buttons matrix, b is target
-    // Each row represents a light, each column a button
-    // matrix[light][button] = 1 if button toggles that light
     let mut matrix: Vec<Vec<u8>> = vec![vec![0; num_buttons + 1]; num_lights];
 
+    // Set button columns: matrix[light][button] = 1 if button toggles that light
     for (button_idx, indices) in buttons.iter().enumerate() {
         for &light_idx in indices {
             if light_idx < num_lights {
@@ -63,17 +53,21 @@ fn solve_machine(line: &str) -> usize {
 
     // Set target column (last column)
     for (light_idx, &is_on) in target.iter().enumerate() {
-        matrix[light_idx][num_buttons] = if is_on { 1 } else { 0 };
+        matrix[light_idx][num_buttons] = u8::from(is_on);
     }
 
-    // Gaussian elimination over GF(2)
-    // Track which column is the pivot for each row
+    matrix
+}
+
+/// Performs Gaussian elimination over GF(2)
+/// Returns mapping from row to pivot column, and transforms matrix in-place
+fn gaussian_elimination_gf2(matrix: &mut [Vec<u8>], num_buttons: usize) -> Vec<Option<usize>> {
+    let num_lights = matrix.len();
     let mut row_pivot: Vec<Option<usize>> = vec![None; num_lights];
     let mut pivot_col = 0;
     let mut current_row = 0;
 
     while current_row < num_lights && pivot_col < num_buttons {
-        // Find pivot in current column
         let found = (current_row..num_lights).find(|&r| matrix[r][pivot_col] == 1);
 
         if let Some(pivot_row) = found {
@@ -81,7 +75,7 @@ fn solve_machine(line: &str) -> usize {
             row_pivot[current_row] = Some(pivot_col);
 
             // Eliminate other rows
-            let pivot_values: Vec<u8> = matrix[current_row].clone();
+            let pivot_values: Vec<u8> = matrix[current_row].to_vec();
             for (r, row) in matrix.iter_mut().enumerate() {
                 if r != current_row && row[pivot_col] == 1 {
                     for (cell, &pivot_val) in row.iter_mut().zip(pivot_values.iter()) {
@@ -94,30 +88,44 @@ fn solve_machine(line: &str) -> usize {
         pivot_col += 1;
     }
 
-    // Build mapping from column to its pivot row (if any)
+    row_pivot
+}
+
+/// Builds mapping from column index to its pivot row (if any)
+fn build_column_to_pivot_map(
+    row_pivot: &[Option<usize>],
+    num_buttons: usize,
+) -> Vec<Option<usize>> {
     let mut col_to_pivot_row: Vec<Option<usize>> = vec![None; num_buttons];
     for (row, &pivot) in row_pivot.iter().enumerate() {
         if let Some(col) = pivot {
             col_to_pivot_row[col] = Some(row);
         }
     }
+    col_to_pivot_row
+}
 
+/// Finds the minimum number of button presses by trying all free variable combinations
+fn find_minimum_solution(
+    matrix: &[Vec<u8>],
+    col_to_pivot_row: &[Option<usize>],
+    num_buttons: usize,
+) -> usize {
     let free_vars: Vec<usize> = (0..num_buttons)
         .filter(|&c| col_to_pivot_row[c].is_none())
         .collect();
 
     let mut min_presses = usize::MAX;
 
-    // Try all combinations of free variables
     for mask in 0..(1u64 << free_vars.len()) {
         let mut solution = vec![0u8; num_buttons];
 
-        // Set free variables
+        // Set free variables based on mask bits
         for (i, &col) in free_vars.iter().enumerate() {
             solution[col] = ((mask >> i) & 1) as u8;
         }
 
-        // Back-substitute for pivot variables (in reverse pivot order)
+        // Back-substitute for pivot variables
         for col in (0..num_buttons).rev() {
             if let Some(row) = col_to_pivot_row[col] {
                 let mut val = matrix[row][num_buttons];
@@ -133,6 +141,19 @@ fn solve_machine(line: &str) -> usize {
     }
 
     min_presses
+}
+
+/// Solves for minimum button presses to achieve target state
+/// Uses Gaussian elimination over GF(2) (binary field)
+fn solve_machine(line: &str) -> usize {
+    let (target, buttons) = parse_machine(line);
+    let num_buttons = buttons.len();
+
+    let mut matrix = build_augmented_matrix(&target, &buttons);
+    let row_pivot = gaussian_elimination_gf2(&mut matrix, num_buttons);
+    let col_to_pivot_row = build_column_to_pivot_map(&row_pivot, num_buttons);
+
+    find_minimum_solution(&matrix, &col_to_pivot_row, num_buttons)
 }
 
 /// Solves for the total minimum button presses for all machines in input
@@ -185,7 +206,6 @@ mod tests {
 
     #[test]
     fn test_solve_machine_first_example() {
-        // [.##.] needs lights 1,2 on. Fewest presses = 2
         assert_eq!(
             solve_machine("[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}"),
             2
@@ -194,7 +214,6 @@ mod tests {
 
     #[test]
     fn test_solve_machine_second_example() {
-        // [...#.] needs light 3 on. Fewest presses = 3
         assert_eq!(
             solve_machine("[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}"),
             3
@@ -203,7 +222,6 @@ mod tests {
 
     #[test]
     fn test_solve_machine_third_example() {
-        // [.###.#] needs lights 1,2,3,5 on. Fewest presses = 2
         assert_eq!(
             solve_machine("[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"),
             2
