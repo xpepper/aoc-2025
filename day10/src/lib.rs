@@ -3,6 +3,11 @@ struct Machine {
     buttons: Vec<Vec<usize>>,
 }
 
+struct MachineJoltage {
+    target_joltage: Vec<usize>,
+    buttons: Vec<Vec<usize>>,
+}
+
 fn parse_machine(input: &str) -> Machine {
     let parts: Vec<&str> = input
         .split(['[', ']', '{', '}'])
@@ -37,6 +42,29 @@ fn parse_buttons(buttons_str: &str) -> Vec<Vec<usize>> {
                 .map(|n| n.trim().parse().unwrap())
                 .collect()
         })
+        .collect()
+}
+
+fn parse_machine_part2(input: &str) -> MachineJoltage {
+    let parts: Vec<&str> = input
+        .split(['[', ']', '{', '}'])
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let buttons = parse_buttons(parts[1]);
+    let target_joltage = parse_joltage(parts[2]);
+
+    MachineJoltage {
+        target_joltage,
+        buttons,
+    }
+}
+
+fn parse_joltage(joltage_str: &str) -> Vec<usize> {
+    joltage_str
+        .trim()
+        .split(',')
+        .map(|n| n.trim().parse().unwrap())
         .collect()
 }
 
@@ -117,6 +145,69 @@ fn toggle_lights(lights: &mut [bool], button: &[usize]) {
     }
 }
 
+fn min_presses_joltage(machine: &MachineJoltage) -> usize {
+    // Try increasing number of total presses until we find a solution
+    for total_presses in 0..=1000 {
+        if let Some(presses) = find_joltage_solution(machine, total_presses) {
+            return presses;
+        }
+    }
+
+    usize::MAX
+}
+
+fn find_joltage_solution(machine: &MachineJoltage, max_presses: usize) -> Option<usize> {
+    let num_buttons = machine.buttons.len();
+    search_joltage_combinations(machine, &vec![0; num_buttons], 0, max_presses)
+}
+
+fn search_joltage_combinations(
+    machine: &MachineJoltage,
+    presses: &[usize],
+    button_idx: usize,
+    remaining: usize,
+) -> Option<usize> {
+    if button_idx == presses.len() {
+        return check_joltage_solution(machine, presses);
+    }
+
+    for count in 0..=remaining {
+        let mut new_presses = presses.to_vec();
+        new_presses[button_idx] = count;
+
+        if let Some(result) =
+            search_joltage_combinations(machine, &new_presses, button_idx + 1, remaining - count)
+        {
+            return Some(result);
+        }
+    }
+
+    None
+}
+
+fn check_joltage_solution(machine: &MachineJoltage, presses: &[usize]) -> Option<usize> {
+    let counters = simulate_joltage_presses(machine, presses);
+
+    if counters == machine.target_joltage {
+        Some(presses.iter().sum())
+    } else {
+        None
+    }
+}
+
+fn simulate_joltage_presses(machine: &MachineJoltage, presses: &[usize]) -> Vec<usize> {
+    let num_counters = machine.target_joltage.len();
+    let mut counters = vec![0; num_counters];
+
+    for (button_idx, &count) in presses.iter().enumerate() {
+        for &counter_idx in &machine.buttons[button_idx] {
+            counters[counter_idx] += count;
+        }
+    }
+
+    counters
+}
+
 pub fn solve(input: &str) -> usize {
     input
         .lines()
@@ -178,5 +269,31 @@ mod tests {
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
 
         assert_eq!(solve(input), 7);
+    }
+
+    #[test]
+    fn test_parse_machine_with_joltage() {
+        let input = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}";
+        let machine = parse_machine_part2(input);
+
+        assert_eq!(machine.target_joltage, vec![3, 5, 4, 7]);
+        assert_eq!(
+            machine.buttons,
+            vec![
+                vec![3],
+                vec![1, 3],
+                vec![2],
+                vec![2, 3],
+                vec![0, 2],
+                vec![0, 1],
+            ]
+        );
+    }
+
+    #[test]
+    fn test_min_presses_joltage_first_machine() {
+        let input = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}";
+        let machine = parse_machine_part2(input);
+        assert_eq!(min_presses_joltage(&machine), 10);
     }
 }
