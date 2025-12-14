@@ -42,11 +42,10 @@ fn parse_buttons(buttons_str: &str) -> Vec<Vec<usize>> {
 
 fn min_presses(machine: &Machine) -> usize {
     let num_buttons = machine.buttons.len();
-    let num_lights = machine.target_lights.len();
 
-    // Try all combinations from 0 to 2^num_buttons - 1
+    // Try increasing number of total presses until we find a solution
     for total_presses in 0..=num_buttons * 2 {
-        if let Some(presses) = try_find_solution(machine, total_presses, num_buttons, num_lights) {
+        if let Some(presses) = find_solution_with_max_presses(machine, total_presses) {
             return presses;
         }
     }
@@ -54,17 +53,13 @@ fn min_presses(machine: &Machine) -> usize {
     usize::MAX // No solution found
 }
 
-fn try_find_solution(
-    machine: &Machine,
-    max_presses: usize,
-    num_buttons: usize,
-    num_lights: usize,
-) -> Option<usize> {
-    // Try all combinations with up to max_presses total presses
-    try_combinations(machine, &vec![0; num_buttons], 0, max_presses, num_lights)
+fn find_solution_with_max_presses(machine: &Machine, max_presses: usize) -> Option<usize> {
+    let num_buttons = machine.buttons.len();
+    let num_lights = machine.target_lights.len();
+    search_combinations(machine, &vec![0; num_buttons], 0, max_presses, num_lights)
 }
 
-fn try_combinations(
+fn search_combinations(
     machine: &Machine,
     presses: &[usize],
     button_idx: usize,
@@ -72,22 +67,7 @@ fn try_combinations(
     num_lights: usize,
 ) -> Option<usize> {
     if button_idx == presses.len() {
-        // Check if this combination produces the target
-        let mut lights = vec![false; num_lights];
-        let total: usize = presses.iter().sum();
-
-        for (i, &count) in presses.iter().enumerate() {
-            for _ in 0..count {
-                for &light_idx in &machine.buttons[i] {
-                    lights[light_idx] = !lights[light_idx];
-                }
-            }
-        }
-
-        if lights == machine.target_lights {
-            return Some(total);
-        }
-        return None;
+        return check_solution(machine, presses, num_lights);
     }
 
     // Try different press counts for current button
@@ -95,7 +75,7 @@ fn try_combinations(
         let mut new_presses = presses.to_vec();
         new_presses[button_idx] = count;
 
-        if let Some(result) = try_combinations(
+        if let Some(result) = search_combinations(
             machine,
             &new_presses,
             button_idx + 1,
@@ -107,6 +87,34 @@ fn try_combinations(
     }
 
     None
+}
+
+fn check_solution(machine: &Machine, presses: &[usize], num_lights: usize) -> Option<usize> {
+    let lights = simulate_presses(machine, presses, num_lights);
+
+    if lights == machine.target_lights {
+        Some(presses.iter().sum())
+    } else {
+        None
+    }
+}
+
+fn simulate_presses(machine: &Machine, presses: &[usize], num_lights: usize) -> Vec<bool> {
+    let mut lights = vec![false; num_lights];
+
+    for (button_idx, &count) in presses.iter().enumerate() {
+        for _ in 0..count {
+            toggle_lights(&mut lights, &machine.buttons[button_idx]);
+        }
+    }
+
+    lights
+}
+
+fn toggle_lights(lights: &mut [bool], button: &[usize]) {
+    for &light_idx in button {
+        lights[light_idx] = !lights[light_idx];
+    }
 }
 
 #[cfg(test)]
