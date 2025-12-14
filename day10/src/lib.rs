@@ -128,11 +128,27 @@ fn min_presses_joltage(machine: &MachineJoltage) -> usize {
             }
         }
 
+        // Early termination: if we're already using too many presses
+        let max_target = target.iter().max().unwrap();
+        if presses > max_target * 2 {
+            continue;
+        }
+
         // Try pressing each button
         for button in &machine.buttons {
             let mut new_state = state.clone();
+            let mut useful = false;
+
             for &idx in button {
+                if new_state[idx] < target[idx] {
+                    useful = true;
+                }
                 new_state[idx] += 1;
+            }
+
+            // Skip if this button doesn't help reach any target
+            if !useful {
+                continue;
             }
 
             // Only explore states that don't exceed the target
