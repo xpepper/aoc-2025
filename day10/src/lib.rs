@@ -103,63 +103,115 @@ fn toggle_lights(lights: &mut [bool], button: &[usize]) {
 }
 
 fn min_presses_joltage(machine: &MachineJoltage) -> usize {
-    // Try a simpler greedy approach with local search
-    let target = &machine.target_joltage;
-    let num_counters = target.len();
+    // Solve as a system of linear equations: A * x = target
+    // where A[counter][button] = 1 if button affects counter
+    // and x[button] = number of times to press button
+
+    let num_counters = machine.target_joltage.len();
     let num_buttons = machine.buttons.len();
 
-    // Start with a simple greedy solution
-    let mut button_presses = vec![0; num_buttons];
-    let mut current = vec![0; num_counters];
+    // Build the constraint matrix
+    let mut matrix: Vec<Vec<f64>> = vec![vec![0.0; num_buttons + 1]; num_counters];
 
-    // Greedy: repeatedly press the button that reduces the maximum gap
-    for _ in 0..10000 { // Limit iterations
-        if &current == target {
-            return button_presses.iter().sum();
+    for (button_idx, button) in machine.buttons.iter().enumerate() {
+        for &counter_idx in button {
+            matrix[counter_idx][button_idx] = 1.0;
+        }
+    }
+
+    // Add target values as the last column
+    for (counter_idx, &target) in machine.target_joltage.iter().enumerate() {
+        matrix[counter_idx][num_buttons] = target as f64;
+    }
+
+    // Solve using Gaussian elimination
+    if let Some(solution) = solve_linear_system(&mut matrix, num_buttons) {
+        // Check if solution is non-negative integers (or very close)
+        let mut total_presses = 0;
+        let mut all_valid = true;
+
+        for &val in &solution {
+            if val < -0.0001 {
+                all_valid = false;
+                break;
+            }
+            let rounded = val.round();
+            if (val - rounded).abs() > 0.0001 {
+                all_valid = false;
+                break;
+            }
+            total_presses += rounded as usize;
         }
 
-        // Find the best button to press
-        let mut best_button = None;
-        let mut best_score = i32::MIN;
-
-        for (button_idx, button) in machine.buttons.iter().enumerate() {
-            // Check if pressing this button would help
-            let mut score = 0;
-            let mut would_overshoot = false;
-
-            for &counter_idx in button {
-                if current[counter_idx] < target[counter_idx] {
-                    score += 1; // Helps this counter
-                } else if current[counter_idx] >= target[counter_idx] {
-                    would_overshoot = true;
-                    break;
+        if all_valid {
+            // Verify the solution
+            let mut result = vec![0; num_counters];
+            for (button_idx, &presses) in solution.iter().enumerate() {
+                let presses = presses.round() as usize;
+                for &counter_idx in &machine.buttons[button_idx] {
+                    result[counter_idx] += presses;
                 }
             }
 
-            if !would_overshoot && score > best_score {
-                best_score = score;
-                best_button = Some(button_idx);
+            if result == machine.target_joltage {
+                return total_presses;
+            }
+        }
+    }
+
+    // If linear algebra doesn't give us a solution, fall back to search
+    limited_search(machine)
+}
+
+// Gaussian elimination to solve Ax = b
+fn solve_linear_system(matrix: &mut [Vec<f64>], num_vars: usize) -> Option<Vec<f64>> {
+    let num_equations = matrix.len();
+
+    // Forward elimination
+    for col in 0..num_vars.min(num_equations) {
+        // Find pivot
+        let mut pivot_row = col;
+        for row in col..num_equations {
+            if matrix[row][col].abs() > matrix[pivot_row][col].abs() {
+                pivot_row = row;
             }
         }
 
-        if let Some(button_idx) = best_button {
-            button_presses[button_idx] += 1;
-            for &counter_idx in &machine.buttons[button_idx] {
-                current[counter_idx] += 1;
+        if matrix[pivot_row][col].abs() < 1e-10 {
+            continue; // Skip this column
+        }
+
+        // Swap rows
+        if pivot_row != col {
+            matrix.swap(col, pivot_row);
+        }
+
+        // Eliminate
+        for row in (col + 1)..num_equations {
+            let factor = matrix[row][col] / matrix[col][col];
+            for c in col..=num_vars {
+                matrix[row][c] -= factor * matrix[col][c];
             }
+        }
+    }
+
+    // Back substitution
+    let mut solution = vec![0.0; num_vars];
+
+    for row in (0..num_equations.min(num_vars)).rev() {
+        let mut sum = matrix[row][num_vars];
+        for col in (row + 1)..num_vars {
+            sum -= matrix[row][col] * solution[col];
+        }
+        if matrix[row][row].abs() > 1e-10 {
+            solution[row] = sum / matrix[row][row];
         } else {
-            // No button helps without overshooting - problem unsolvable with greedy
-            break;
+            // Free variable, try 0
+            solution[row] = 0.0;
         }
     }
 
-    // If greedy didn't work, try limited BFS from the greedy solution
-    if &current != target {
-        // Fall back to exhaustive search with small limit
-        return limited_search(machine);
-    }
-
-    button_presses.iter().sum()
+    Some(solution)
 }
 
 fn limited_search(machine: &MachineJoltage) -> usize {
