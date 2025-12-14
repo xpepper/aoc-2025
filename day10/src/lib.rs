@@ -70,73 +70,30 @@ fn parse_joltage(joltage_str: &str) -> Vec<usize> {
 
 fn min_presses(machine: &Machine) -> usize {
     let num_buttons = machine.buttons.len();
-
-    // Try increasing number of total presses until we find a solution
-    for total_presses in 0..=num_buttons * 2 {
-        if let Some(presses) = find_solution_with_max_presses(machine, total_presses) {
-            return presses;
-        }
-    }
-
-    usize::MAX // No solution found
-}
-
-fn find_solution_with_max_presses(machine: &Machine, max_presses: usize) -> Option<usize> {
-    let num_buttons = machine.buttons.len();
     let num_lights = machine.target_lights.len();
-    search_combinations(machine, &vec![0; num_buttons], 0, max_presses, num_lights)
-}
 
-fn search_combinations(
-    machine: &Machine,
-    presses: &[usize],
-    button_idx: usize,
-    remaining: usize,
-    num_lights: usize,
-) -> Option<usize> {
-    if button_idx == presses.len() {
-        return check_solution(machine, presses, num_lights);
-    }
+    // For toggling, pressing a button twice = not pressing it at all
+    // So we only need to try 0 or 1 presses per button
+    // Try all 2^num_buttons combinations
+    let mut min_presses = usize::MAX;
 
-    // Try different press counts for current button
-    for count in 0..=remaining {
-        let mut new_presses = presses.to_vec();
-        new_presses[button_idx] = count;
+    for mask in 0..(1 << num_buttons) {
+        let mut lights = vec![false; num_lights];
+        let mut total_presses = 0;
 
-        if let Some(result) = search_combinations(
-            machine,
-            &new_presses,
-            button_idx + 1,
-            remaining - count,
-            num_lights,
-        ) {
-            return Some(result);
+        for button_idx in 0..num_buttons {
+            if (mask & (1 << button_idx)) != 0 {
+                total_presses += 1;
+                toggle_lights(&mut lights, &machine.buttons[button_idx]);
+            }
+        }
+
+        if lights == machine.target_lights {
+            min_presses = min_presses.min(total_presses);
         }
     }
 
-    None
-}
-
-fn check_solution(machine: &Machine, presses: &[usize], num_lights: usize) -> Option<usize> {
-    let lights = simulate_presses(machine, presses, num_lights);
-
-    if lights == machine.target_lights {
-        Some(presses.iter().sum())
-    } else {
-        None
-    }
-}
-
-fn simulate_presses(machine: &Machine, presses: &[usize], num_lights: usize) -> Vec<bool> {
-    let mut lights = vec![false; num_lights];
-
-    for (button_idx, &count) in presses.iter().enumerate() {
-        for _ in 0..count {
-            toggle_lights(&mut lights, &machine.buttons[button_idx]);
-        }
-    }
-
-    lights
+    min_presses
 }
 
 fn toggle_lights(lights: &mut [bool], button: &[usize]) {
@@ -146,8 +103,11 @@ fn toggle_lights(lights: &mut [bool], button: &[usize]) {
 }
 
 fn min_presses_joltage(machine: &MachineJoltage) -> usize {
+    let max_target = machine.target_joltage.iter().max().copied().unwrap_or(0);
+    let upper_bound = max_target * 2; // Conservative upper bound
+
     // Try increasing number of total presses until we find a solution
-    for total_presses in 0..=1000 {
+    for total_presses in 0..=upper_bound {
         if let Some(presses) = find_joltage_solution(machine, total_presses) {
             return presses;
         }
