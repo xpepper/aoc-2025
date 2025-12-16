@@ -88,4 +88,22 @@ Find all of the paths that lead from svr to out. How many of those paths visit b
 
 ## Solution Approach
 
-*Solution summary will be added after completing both parts.*
+### Part 1
+- Parse the input into an adjacency list representing the reactor graph
+- Use memoized depth-first search to count all possible paths from "you" to "out"
+- Memoization avoids exponential recomputation by caching results for each node
+- The solution efficiently handles the potentially large number of paths in the reactor
+
+### Part 2
+- Count paths that must visit both "dac" and "fft" nodes (in any order)
+- Since paths must visit both required nodes, we can break the problem into segments:
+  - Count paths from svr → dac → fft → out
+  - Count paths from svr → fft → dac → out
+  - Sum both possible orders
+- Use the same memoized DFS approach from Part 1 for each segment
+- This leverages the path counting abstraction and avoids modifying the core algorithm
+
+### Key Insights
+- The problem reduces to counting paths in a directed acyclic graph
+- Memoization is crucial for performance with large inputs
+- Part 2 demonstrates how to compose path counts for complex requirements
