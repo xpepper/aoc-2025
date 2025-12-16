@@ -8,19 +8,26 @@ pub struct Shape {
 
 pub fn parse_shape(input: &str) -> Shape {
     let lines: Vec<&str> = input.trim().lines().collect();
-    let header = lines[0];
-    let index: usize = header.trim_end_matches(':').parse().unwrap();
+    let index = parse_shape_index(lines[0]);
+    let cells = parse_shape_cells(&lines[1..]);
 
+    Shape { index, cells }
+}
+
+fn parse_shape_index(header: &str) -> usize {
+    header.trim_end_matches(':').parse().unwrap()
+}
+
+fn parse_shape_cells(shape_lines: &[&str]) -> Vec<(usize, usize)> {
     let mut cells = Vec::new();
-    for (y, line) in lines[1..].iter().enumerate() {
+    for (y, line) in shape_lines.iter().enumerate() {
         for (x, ch) in line.chars().enumerate() {
             if ch == '#' {
                 cells.push((x, y));
             }
         }
     }
-
-    Shape { index, cells }
+    cells
 }
 
 #[cfg(test)]
