@@ -20,6 +20,12 @@ pub struct Grid {
     pub occupied_cells: Vec<bool>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct ShapeInstance {
+    pub shape_index: usize,
+    pub transformations: Vec<Shape>,
+}
+
 pub fn parse_shape(input: &str) -> Shape {
     let lines: Vec<&str> = input.trim().lines().collect();
     let index = parse_shape_index(lines[0]);
@@ -236,6 +242,71 @@ pub fn remove_shape(grid: &mut Grid, shape: &Shape, x_offset: usize, y_offset: u
     }
 }
 
+pub fn collect_shapes_to_place(region: &Region) -> Vec<ShapeInstance> {
+    let mut shapes_to_place = Vec::new();
+
+    for (shape_index, &count) in region.shape_counts.iter().enumerate() {
+        if count > 0 {
+            let base_shape = Shape {
+                index: shape_index,
+                cells: vec![], // We'll fill this in later
+            };
+            let transformations = generate_all_transformations(&base_shape);
+
+            for _ in 0..count {
+                shapes_to_place.push(ShapeInstance {
+                    shape_index,
+                    transformations: transformations.clone(),
+                });
+            }
+        }
+    }
+
+    shapes_to_place
+}
+
+pub fn can_fit_all_shapes(region: &Region, shapes: &[Shape]) -> bool {
+    let mut grid = Grid::new(region.width, region.height);
+    let mut shapes_to_place = collect_shapes_to_place(region);
+
+    // Fill in the actual shape data
+    for instance in &mut shapes_to_place {
+        let base_shape = &shapes[instance.shape_index];
+        instance.transformations = generate_all_transformations(base_shape);
+    }
+
+    backtrack(&mut grid, &mut shapes_to_place)
+}
+
+fn backtrack(grid: &mut Grid, shapes_to_place: &mut Vec<ShapeInstance>) -> bool {
+    if shapes_to_place.is_empty() {
+        return true; // All shapes placed successfully
+    }
+
+    let current_shape = shapes_to_place.remove(0);
+
+    // Try all transformations of this shape
+    for transformation in &current_shape.transformations {
+        // Try all valid positions in grid
+        for y in 0..grid.height {
+            for x in 0..grid.width {
+                if can_place_shape(grid, transformation, x, y) {
+                    place_shape(grid, transformation, x, y);
+
+                    if backtrack(grid, shapes_to_place) {
+                        return true;
+                    }
+
+                    remove_shape(grid, transformation, x, y); // backtrack
+                }
+            }
+        }
+    }
+
+    shapes_to_place.insert(0, current_shape); // restore for other branches
+    false // no valid placement found
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -342,7 +413,7 @@ mod tests {
 
     #[test]
     fn test_can_place_shape_empty_grid() {
-        let mut grid = Grid::new(3, 3);
+        let grid = Grid::new(3, 3);
         let shape = Shape {
             index: 0,
             cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
@@ -351,21 +422,6 @@ mod tests {
         assert!(can_place_shape(&grid, &shape, 0, 0));
         assert!(can_place_shape(&grid, &shape, 1, 1));
         assert!(!can_place_shape(&grid, &shape, 2, 2)); // Would go out of bounds
-    }
-
-    #[test]
-    fn test_can_place_shape_with_obstructions() {
-        let grid = Grid::new(3, 3);
-        let shape = Shape {
-            index: 0,
-            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
-        };
-
-        // Place a different shape first
-        grid.set_occupied(0, 0, true);
-
-        assert!(!can_place_shape(&grid, &shape, 0, 0)); // Overlap
-        assert!(can_place_shape(&grid, &shape, 1, 0)); // No overlap
     }
 
     #[test]
@@ -388,5 +444,88 @@ mod tests {
         assert!(!grid.is_occupied(0, 0));
         assert!(!grid.is_occupied(1, 0));
         assert!(!grid.is_occupied(0, 1));
+    }
+
+    #[test]
+    fn test_can_place_shape_with_obstructions() {
+        let mut grid = Grid::new(3, 3);
+        let shape = Shape {
+            index: 0,
+            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
+        };
+
+        // Place a different shape first
+        grid.set_occupied(0, 0, true);
+
+        assert!(!can_place_shape(&grid, &shape, 0, 0)); // Overlap
+        assert!(can_place_shape(&grid, &shape, 1, 0)); // No overlap
+    }
+
+    #[test]
+    fn test_can_fit_all_shapes_simple_case() {
+        let region = Region {
+            width: 4,
+            height: 4,
+            shape_counts: vec![0, 0, 0, 0, 2, 0], // Two shape 4's
+        };
+        let shape4 = Shape {
+            index: 4,
+            cells: vec![(0, 0), (1, 0), (2, 0), (0, 1), (0, 2), (1, 2), (2, 2)],
+        };
+        // Create all shapes up to index 4
+        let shapes = vec![
+            Shape {
+                index: 0,
+                cells: vec![],
+            },
+            Shape {
+                index: 1,
+                cells: vec![],
+            },
+            Shape {
+                index: 2,
+                cells: vec![],
+            },
+            Shape {
+                index: 3,
+                cells: vec![],
+            },
+            shape4,
+        ];
+
+        let result = can_fit_all_shapes(&region, &shapes);
+        assert!(result); // From the example, we know this should fit
+    }
+
+    #[test]
+    fn test_can_fit_all_shapes_impossible_case() {
+        let region = Region {
+            width: 2,
+            height: 2,
+            shape_counts: vec![1, 0, 0, 0, 0, 0], // One shape 0 in a tiny grid
+        };
+        let shape0 = Shape {
+            index: 0,
+            cells: vec![(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (0, 2), (1, 2)], // 3x3 shape
+        };
+        let shapes = vec![shape0.clone()];
+
+        let result = can_fit_all_shapes(&region, &shapes);
+        assert!(!result); // 3x3 shape should NOT fit in 2x2 grid
+    }
+
+    #[test]
+    fn test_collect_shapes_to_place() {
+        let region = Region {
+            width: 4,
+            height: 4,
+            shape_counts: vec![1, 0, 2, 0, 0, 0], // One shape 0, two shape 2's
+        };
+
+        let shapes_to_place = collect_shapes_to_place(&region);
+        assert_eq!(shapes_to_place.len(), 3); // Total 3 shapes
+        assert_eq!(shapes_to_place[0].shape_index, 0);
+        assert_eq!(shapes_to_place[1].shape_index, 2);
+        assert_eq!(shapes_to_place[2].shape_index, 2);
     }
 }
