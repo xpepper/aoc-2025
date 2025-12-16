@@ -1,4 +1,4 @@
-use day11::solve_part1;
+use day11::{solve_part1, solve_part2};
 use std::fs;
 
 fn main() {
@@ -8,4 +8,5 @@ fn main() {
     });
 
     println!("Part 1: {}", solve_part1(&input));
+    println!("Part 2: {}", solve_part2(&input));
 }

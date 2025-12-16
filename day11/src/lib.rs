@@ -68,6 +68,15 @@ pub fn solve_part1(input: &str) -> u128 {
     graph.count_paths("you", "out")
 }
 
+pub fn solve_part2(input: &str) -> u128 {
+    let graph = ReactorGraph::from_str(input);
+
+    let from = |a: &str, b: &str| graph.count_paths(a, b);
+
+    from("svr", "dac") * from("dac", "fft") * from("fft", "out")
+        + from("svr", "fft") * from("fft", "dac") * from("dac", "out")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,5 +97,26 @@ mod tests {
     #[test]
     fn example_part_one() {
         assert_eq!(5, solve_part1(EXAMPLE));
+    }
+
+    const PART2_EXAMPLE: &str = "\
+    svr: aaa bbb
+    aaa: fft
+    fft: ccc
+    bbb: tty
+    tty: ccc
+    ccc: ddd eee
+    ddd: hub
+    hub: fff
+    eee: dac
+    dac: fff
+    fff: ggg hhh
+    ggg: out
+    hhh: out
+    ";
+
+    #[test]
+    fn example_part_two() {
+        assert_eq!(2, solve_part2(PART2_EXAMPLE));
     }
 }
