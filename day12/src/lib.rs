@@ -6,6 +6,20 @@ pub struct Shape {
     pub cells: Vec<(usize, usize)>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Region {
+    pub width: usize,
+    pub height: usize,
+    pub shape_counts: Vec<usize>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Grid {
+    pub width: usize,
+    pub height: usize,
+    pub occupied_cells: Vec<bool>,
+}
+
 pub fn parse_shape(input: &str) -> Shape {
     let lines: Vec<&str> = input.trim().lines().collect();
     let index = parse_shape_index(lines[0]);
@@ -131,6 +145,79 @@ pub fn generate_all_transformations(shape: &Shape) -> Vec<Shape> {
     transformations
 }
 
+impl Grid {
+    pub fn new(width: usize, height: usize) -> Self {
+        let occupied_cells = vec![false; width * height];
+        Grid {
+            width,
+            height,
+            occupied_cells,
+        }
+    }
+
+    pub fn is_occupied(&self, x: usize, y: usize) -> bool {
+        if x >= self.width || y >= self.height {
+            return false; // Out of bounds is not occupied
+        }
+        self.occupied_cells[y * self.width + x]
+    }
+
+    pub fn set_occupied(&mut self, x: usize, y: usize, occupied: bool) {
+        if x < self.width && y < self.height {
+            self.occupied_cells[y * self.width + x] = occupied;
+        }
+    }
+}
+
+pub fn parse_region(input: &str) -> Region {
+    let parts: Vec<&str> = input.split(':').collect();
+    let dimensions: Vec<usize> = parts[0].split('x').map(|s| s.parse().unwrap()).collect();
+    let shape_counts: Vec<usize> = parts[1]
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    Region {
+        width: dimensions[0],
+        height: dimensions[1],
+        shape_counts,
+    }
+}
+
+pub fn can_place_shape(grid: &Grid, shape: &Shape, x_offset: usize, y_offset: usize) -> bool {
+    for &(x, y) in &shape.cells {
+        let grid_x = x + x_offset;
+        let grid_y = y + y_offset;
+
+        // Check bounds
+        if grid_x >= grid.width || grid_y >= grid.height {
+            return false;
+        }
+
+        // Check if cell is already occupied
+        if grid.is_occupied(grid_x, grid_y) {
+            return false;
+        }
+    }
+    true
+}
+
+pub fn place_shape(grid: &mut Grid, shape: &Shape, x_offset: usize, y_offset: usize) {
+    for &(x, y) in &shape.cells {
+        let grid_x = x + x_offset;
+        let grid_y = y + y_offset;
+        grid.set_occupied(grid_x, grid_y, true);
+    }
+}
+
+pub fn remove_shape(grid: &mut Grid, shape: &Shape, x_offset: usize, y_offset: usize) {
+    for &(x, y) in &shape.cells {
+        let grid_x = x + x_offset;
+        let grid_y = y + y_offset;
+        grid.set_occupied(grid_x, grid_y, false);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -203,5 +290,85 @@ mod tests {
 
         // Should generate 8 unique transformations (4 rotations × 2 flips)
         assert_eq!(transformations.len(), 8);
+    }
+
+    #[test]
+    fn test_parse_region() {
+        let input = "4x4: 0 0 0 0 2 0";
+        let region = parse_region(input);
+
+        assert_eq!(region.width, 4);
+        assert_eq!(region.height, 4);
+        assert_eq!(region.shape_counts, vec![0, 0, 0, 0, 2, 0]);
+    }
+
+    #[test]
+    fn test_parse_region_larger() {
+        let input = "12x5: 1 0 1 0 2 2";
+        let region = parse_region(input);
+
+        assert_eq!(region.width, 12);
+        assert_eq!(region.height, 5);
+        assert_eq!(region.shape_counts, vec![1, 0, 1, 0, 2, 2]);
+    }
+
+    #[test]
+    fn test_grid_creation() {
+        let grid = Grid::new(3, 2);
+
+        assert_eq!(grid.width, 3);
+        assert_eq!(grid.height, 2);
+        assert_eq!(grid.occupied_cells.len(), 6); // 3 * 2 = 6 cells
+        assert!(!grid.occupied_cells[0]); // All cells should be empty initially
+    }
+
+    #[test]
+    fn test_can_place_shape_empty_grid() {
+        let mut grid = Grid::new(3, 3);
+        let shape = Shape {
+            index: 0,
+            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
+        };
+
+        assert!(can_place_shape(&grid, &shape, 0, 0));
+        assert!(can_place_shape(&grid, &shape, 1, 1));
+        assert!(!can_place_shape(&grid, &shape, 2, 2)); // Would go out of bounds
+    }
+
+    #[test]
+    fn test_can_place_shape_with_obstructions() {
+        let grid = Grid::new(3, 3);
+        let shape = Shape {
+            index: 0,
+            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
+        };
+
+        // Place a different shape first
+        grid.set_occupied(0, 0, true);
+
+        assert!(!can_place_shape(&grid, &shape, 0, 0)); // Overlap
+        assert!(can_place_shape(&grid, &shape, 1, 0)); // No overlap
+    }
+
+    #[test]
+    fn test_place_shape_and_remove_shape() {
+        let mut grid = Grid::new(3, 3);
+        let shape = Shape {
+            index: 0,
+            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
+        };
+
+        // Place shape
+        place_shape(&mut grid, &shape, 0, 0);
+        assert!(grid.is_occupied(0, 0));
+        assert!(grid.is_occupied(1, 0));
+        assert!(grid.is_occupied(0, 1));
+        assert!(!grid.is_occupied(1, 1));
+
+        // Remove shape
+        remove_shape(&mut grid, &shape, 0, 0);
+        assert!(!grid.is_occupied(0, 0));
+        assert!(!grid.is_occupied(1, 0));
+        assert!(!grid.is_occupied(0, 1));
     }
 }
