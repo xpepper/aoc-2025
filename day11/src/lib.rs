@@ -1,3 +1,6 @@
+// Advent of Code 2025 - Day 11: Reactor
+// Part 1: Count paths from 'you' to 'out'
+
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -7,26 +10,36 @@ struct ReactorGraph {
 
 impl ReactorGraph {
     fn from_str(input: &str) -> Self {
-        let adjacency = input
+        let adjacency = Self::parse_adjacency(input);
+        ReactorGraph { adjacency }
+    }
+
+    fn parse_adjacency(input: &str) -> HashMap<String, Vec<String>> {
+        input
             .lines()
             .map(str::trim)
             .filter(|line| !line.is_empty())
-            .map(|line| {
-                let mut parts = line.split(':');
-                let parent = parts
-                    .next()
-                    .expect("every line should have a parent label")
-                    .trim()
-                    .to_string();
-                let children = parts
-                    .next()
-                    .map(|rest| rest.split_whitespace().map(str::to_string).collect())
-                    .unwrap_or_else(Vec::new);
-                (parent, children)
-            })
-            .collect();
+            .map(Self::parse_line)
+            .collect()
+    }
 
-        ReactorGraph { adjacency }
+    fn parse_line(line: &str) -> (String, Vec<String>) {
+        let mut parts = line.split(':');
+        let parent = parts
+            .next()
+            .expect("every line should have a parent label")
+            .trim()
+            .to_string();
+        let children = parts
+            .next()
+            .map(|rest| rest.split_whitespace().map(str::to_string).collect())
+            .unwrap_or_default();
+        (parent, children)
+    }
+
+    fn count_paths(&self, source: &str, target: &str) -> u128 {
+        let mut memo = HashMap::new();
+        self.dfs(source, target, &mut memo)
     }
 
     fn dfs(&self, current: &str, target: &str, memo: &mut HashMap<String, u128>) -> u128 {
@@ -48,24 +61,11 @@ impl ReactorGraph {
         memo.insert(current.to_string(), count);
         count
     }
-
-    fn count_paths(&self, source: &str, target: &str) -> u128 {
-        let mut memo = HashMap::new();
-        self.dfs(source, target, &mut memo)
-    }
 }
 
 pub fn solve_part1(input: &str) -> u128 {
-    ReactorGraph::from_str(input).count_paths("you", "out")
-}
-
-pub fn solve_part2(input: &str) -> u128 {
     let graph = ReactorGraph::from_str(input);
-
-    let from = |a: &str, b: &str| graph.count_paths(a, b);
-
-    from("svr", "dac") * from("dac", "fft") * from("fft", "out")
-        + from("svr", "fft") * from("fft", "dac") * from("dac", "out")
+    graph.count_paths("you", "out")
 }
 
 #[cfg(test)]
@@ -88,19 +88,5 @@ mod tests {
     #[test]
     fn example_part_one() {
         assert_eq!(5, solve_part1(EXAMPLE));
-    }
-
-    #[test]
-    fn samples_part_two() {
-        const INPUT: &str = "\
-        svr: dac alt
-        alt: dac
-        dac: mid1 mid2
-        mid1: fft
-        mid2: fft
-        fft: out
-        ";
-
-        assert_eq!(4, solve_part2(INPUT));
     }
 }
