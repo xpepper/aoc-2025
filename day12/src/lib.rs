@@ -35,7 +35,11 @@ pub fn parse_shape(input: &str) -> Shape {
 }
 
 fn parse_shape_index(header: &str) -> usize {
-    header.trim_end_matches(':').parse().unwrap()
+    let trimmed = header.trim_end_matches(':').trim();
+    match trimmed.parse::<usize>() {
+        Ok(index) => index,
+        Err(e) => panic!("Failed to parse shape index from '{}': {:?}", header, e),
+    }
 }
 
 fn parse_shape_cells(shape_lines: &[&str]) -> Vec<(usize, usize)> {
@@ -269,7 +273,7 @@ pub fn can_fit_all_shapes(region: &Region, shapes: &[Shape]) -> bool {
     let mut grid = Grid::new(region.width, region.height);
     let mut shapes_to_place = collect_shapes_to_place(region);
 
-    // Fill in the actual shape data
+    // Fill in actual shape data
     for instance in &mut shapes_to_place {
         let base_shape = &shapes[instance.shape_index];
         instance.transformations = generate_all_transformations(base_shape);
@@ -333,6 +337,58 @@ fn try_place_shape_at_position(
     false
 }
 
+pub fn parse_full_input(input: &str) -> (Vec<Shape>, Vec<Region>) {
+    let lines: Vec<&str> = input.trim().lines().collect();
+    let mut shapes = Vec::new();
+    let mut regions = Vec::new();
+    let mut current_shape_lines = Vec::new();
+    let mut parsing_shapes = true;
+
+    for line in lines {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        // Check if we're switching from shapes to regions by looking for region lines (contain 'x' followed by ':')
+        if line.contains('x') && line.contains(':') {
+            parsing_shapes = false;
+        }
+
+        if parsing_shapes {
+            if line.contains(':') {
+                // Complete previous shape
+                if !current_shape_lines.is_empty() {
+                    let shape_text = current_shape_lines.join("\n");
+                    shapes.push(parse_shape(&shape_text));
+                }
+                current_shape_lines.clear();
+            }
+            current_shape_lines.push(line);
+        } else {
+            // Parse region line
+            regions.push(parse_region(line));
+        }
+    }
+
+    // Parse the last shape
+    if !current_shape_lines.is_empty() {
+        let shape_text = current_shape_lines.join("\n");
+        shapes.push(parse_shape(&shape_text));
+    }
+
+    (shapes, regions)
+}
+
+pub fn solve_puzzle(input: &str) -> usize {
+    let (shapes, regions) = parse_full_input(input);
+
+    regions
+        .iter()
+        .map(|region| can_fit_all_shapes(region, &shapes))
+        .filter(|&can_fit| can_fit)
+        .count()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -380,7 +436,6 @@ mod tests {
         };
         let rotated = rotate_shape(&shape, 180);
 
-        // Let's accept the actual result and update the test
         assert_eq!(rotated.cells, vec![(0, 1), (1, 0), (1, 1)]);
     }
 
@@ -451,6 +506,21 @@ mod tests {
     }
 
     #[test]
+    fn test_can_place_shape_with_obstructions() {
+        let mut grid = Grid::new(3, 3);
+        let shape = Shape {
+            index: 0,
+            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
+        };
+
+        // Place a different shape first
+        grid.set_occupied(0, 0, true);
+
+        assert!(!can_place_shape(&grid, &shape, 0, 0)); // Overlap
+        assert!(can_place_shape(&grid, &shape, 1, 0)); // No overlap
+    }
+
+    #[test]
     fn test_place_shape_and_remove_shape() {
         let mut grid = Grid::new(3, 3);
         let shape = Shape {
@@ -470,21 +540,6 @@ mod tests {
         assert!(!grid.is_occupied(0, 0));
         assert!(!grid.is_occupied(1, 0));
         assert!(!grid.is_occupied(0, 1));
-    }
-
-    #[test]
-    fn test_can_place_shape_with_obstructions() {
-        let mut grid = Grid::new(3, 3);
-        let shape = Shape {
-            index: 0,
-            cells: vec![(0, 0), (1, 0), (0, 1)], // L shape
-        };
-
-        // Place a different shape first
-        grid.set_occupied(0, 0, true);
-
-        assert!(!can_place_shape(&grid, &shape, 0, 0)); // Overlap
-        assert!(can_place_shape(&grid, &shape, 1, 0)); // No overlap
     }
 
     #[test]
@@ -553,5 +608,33 @@ mod tests {
         assert_eq!(shapes_to_place[0].shape_index, 0);
         assert_eq!(shapes_to_place[1].shape_index, 2);
         assert_eq!(shapes_to_place[2].shape_index, 2);
+    }
+
+    #[test]
+    fn test_parse_full_input() {
+        let input = "0:\n..#\n.##\n##.\n1:\n###\n#.#\n#.#";
+        let (shapes, regions) = parse_full_input(input);
+
+        assert_eq!(shapes.len(), 2);
+        assert_eq!(regions.len(), 0); // No regions in this partial input
+    }
+
+    #[test]
+    fn test_parse_single_shape_from_full_input() {
+        let input = "0:\n###\n##.\n##.";
+        let shape = parse_shape(input);
+
+        assert_eq!(shape.index, 0);
+        assert_eq!(
+            shape.cells,
+            vec![(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (0, 2), (1, 2)]
+        );
+    }
+
+    #[test]
+    fn test_solve_puzzle() {
+        let input = "0:\n###\n##.\n##.\n1:\n###\n#.#\n#.#\n2:\n###\n.##\n.##\n3:\n#..\n##.\n###\n4:\n###\n#..\n###\n\n4x4: 0 0 0 0 2 0";
+        let result = solve_puzzle(input);
+        assert_eq!(result, 1); // Should count 1 region that fits
     }
 }
