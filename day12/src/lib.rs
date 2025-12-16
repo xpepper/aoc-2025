@@ -170,36 +170,54 @@ impl Grid {
 }
 
 pub fn parse_region(input: &str) -> Region {
-    let parts: Vec<&str> = input.split(':').collect();
-    let dimensions: Vec<usize> = parts[0].split('x').map(|s| s.parse().unwrap()).collect();
-    let shape_counts: Vec<usize> = parts[1]
-        .split_whitespace()
-        .map(|s| s.parse().unwrap())
-        .collect();
+    let (dimensions_part, counts_part) = split_region_input(input);
+    let dimensions = parse_dimensions(dimensions_part);
+    let shape_counts = parse_shape_counts(counts_part);
 
     Region {
-        width: dimensions[0],
-        height: dimensions[1],
+        width: dimensions.0,
+        height: dimensions.1,
         shape_counts,
     }
 }
 
+fn split_region_input(input: &str) -> (&str, &str) {
+    let parts: Vec<&str> = input.split(':').collect();
+    (parts[0], parts[1])
+}
+
+fn parse_dimensions(dimensions_part: &str) -> (usize, usize) {
+    let dimensions: Vec<usize> = dimensions_part
+        .split('x')
+        .map(|s| s.parse().unwrap())
+        .collect();
+    (dimensions[0], dimensions[1])
+}
+
+fn parse_shape_counts(counts_part: &str) -> Vec<usize> {
+    counts_part
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect()
+}
+
 pub fn can_place_shape(grid: &Grid, shape: &Shape, x_offset: usize, y_offset: usize) -> bool {
     for &(x, y) in &shape.cells {
-        let grid_x = x + x_offset;
-        let grid_y = y + y_offset;
-
-        // Check bounds
-        if grid_x >= grid.width || grid_y >= grid.height {
-            return false;
-        }
-
-        // Check if cell is already occupied
-        if grid.is_occupied(grid_x, grid_y) {
+        if !is_cell_available_for_placement(grid, x + x_offset, y + y_offset) {
             return false;
         }
     }
     true
+}
+
+fn is_cell_available_for_placement(grid: &Grid, x: usize, y: usize) -> bool {
+    // Check bounds first
+    if x >= grid.width || y >= grid.height {
+        return false;
+    }
+
+    // Check if cell is already occupied
+    !grid.is_occupied(x, y)
 }
 
 pub fn place_shape(grid: &mut Grid, shape: &Shape, x_offset: usize, y_offset: usize) {
