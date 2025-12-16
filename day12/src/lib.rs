@@ -285,26 +285,52 @@ fn backtrack(grid: &mut Grid, shapes_to_place: &mut Vec<ShapeInstance>) -> bool 
 
     let current_shape = shapes_to_place.remove(0);
 
-    // Try all transformations of this shape
-    for transformation in &current_shape.transformations {
-        // Try all valid positions in grid
-        for y in 0..grid.height {
-            for x in 0..grid.width {
-                if can_place_shape(grid, transformation, x, y) {
-                    place_shape(grid, transformation, x, y);
-
-                    if backtrack(grid, shapes_to_place) {
-                        return true;
-                    }
-
-                    remove_shape(grid, transformation, x, y); // backtrack
-                }
-            }
-        }
+    if try_place_shape_at_all_positions(grid, &current_shape, shapes_to_place) {
+        return true;
     }
 
     shapes_to_place.insert(0, current_shape); // restore for other branches
     false // no valid placement found
+}
+
+fn try_place_shape_at_all_positions(
+    grid: &mut Grid,
+    shape_instance: &ShapeInstance,
+    remaining_shapes: &mut Vec<ShapeInstance>,
+) -> bool {
+    // Try all transformations of this shape
+    for transformation in &shape_instance.transformations {
+        // Try all valid positions in grid
+        for (x, y) in iterate_grid_positions(grid.width, grid.height) {
+            if try_place_shape_at_position(grid, transformation, x, y, remaining_shapes) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn iterate_grid_positions(width: usize, height: usize) -> impl Iterator<Item = (usize, usize)> {
+    (0..height).flat_map(move |y| (0..width).map(move |x| (x, y)))
+}
+
+fn try_place_shape_at_position(
+    grid: &mut Grid,
+    transformation: &Shape,
+    x: usize,
+    y: usize,
+    remaining_shapes: &mut Vec<ShapeInstance>,
+) -> bool {
+    if can_place_shape(grid, transformation, x, y) {
+        place_shape(grid, transformation, x, y);
+
+        if backtrack(grid, remaining_shapes) {
+            return true;
+        }
+
+        remove_shape(grid, transformation, x, y); // backtrack
+    }
+    false
 }
 
 #[cfg(test)]
