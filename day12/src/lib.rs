@@ -389,6 +389,12 @@ pub fn solve_puzzle(input: &str) -> usize {
         .count()
 }
 
+pub fn solve() {
+    let input = include_str!("../puzzle-input.txt");
+    let result = solve_puzzle(input);
+    println!("{}", result);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
