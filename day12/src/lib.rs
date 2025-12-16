@@ -31,11 +31,11 @@ fn parse_shape_cells(shape_lines: &[&str]) -> Vec<(usize, usize)> {
 }
 
 pub fn rotate_shape(shape: &Shape, degrees: u32) -> Shape {
-    let cells = match degrees % 360 {
-        90 => rotate_90(&shape.cells),
-        180 => rotate_180(&shape.cells),
-        270 => rotate_270(&shape.cells),
-        _ => shape.cells.clone(),
+    let normalized_degrees = degrees % 360;
+    let cells = if normalized_degrees == 0 {
+        shape.cells.clone()
+    } else {
+        rotate_by_degrees(&shape.cells, normalized_degrees)
     };
 
     Shape {
@@ -44,28 +44,52 @@ pub fn rotate_shape(shape: &Shape, degrees: u32) -> Shape {
     }
 }
 
+fn rotate_by_degrees(cells: &[(usize, usize)], degrees: u32) -> Vec<(usize, usize)> {
+    match degrees {
+        90 => rotate_90(cells),
+        180 => rotate_180(cells),
+        270 => rotate_270(cells),
+        _ => cells.to_vec(),
+    }
+}
+
 fn rotate_90(cells: &[(usize, usize)]) -> Vec<(usize, usize)> {
-    let max_y = cells.iter().map(|(_, y)| *y).max().unwrap_or(0);
-    let rotated: Vec<(usize, usize)> = cells.iter().map(|(x, y)| (*y, max_y - x)).collect();
+    let max_y = find_max_y(cells);
+    let rotated = transform_cells(cells, |(x, y)| (y, max_y - x));
     normalize_coordinates(&rotated)
 }
 
 fn rotate_180(cells: &[(usize, usize)]) -> Vec<(usize, usize)> {
-    let max_x = cells.iter().map(|(x, _)| *x).max().unwrap_or(0);
-    let max_y = cells.iter().map(|(_, y)| *y).max().unwrap_or(0);
-    let rotated: Vec<(usize, usize)> = cells.iter().map(|(x, y)| (max_x - x, max_y - y)).collect();
+    let max_x = find_max_x(cells);
+    let max_y = find_max_y(cells);
+    let rotated = transform_cells(cells, |(x, y)| (max_x - x, max_y - y));
     normalize_coordinates(&rotated)
 }
 
 fn rotate_270(cells: &[(usize, usize)]) -> Vec<(usize, usize)> {
-    let max_x = cells.iter().map(|(x, _)| *x).max().unwrap_or(0);
-    let rotated: Vec<(usize, usize)> = cells.iter().map(|(x, y)| (*y, max_x - x)).collect();
+    let max_x = find_max_x(cells);
+    let rotated = transform_cells(cells, |(x, y)| (y, max_x - x));
     normalize_coordinates(&rotated)
 }
 
+fn find_max_x(cells: &[(usize, usize)]) -> usize {
+    cells.iter().map(|(x, _)| *x).max().unwrap_or(0)
+}
+
+fn find_max_y(cells: &[(usize, usize)]) -> usize {
+    cells.iter().map(|(_, y)| *y).max().unwrap_or(0)
+}
+
+fn transform_cells<F>(cells: &[(usize, usize)], transform: F) -> Vec<(usize, usize)>
+where
+    F: Fn((usize, usize)) -> (usize, usize),
+{
+    cells.iter().map(|&cell| transform(cell)).collect()
+}
+
 pub fn flip_shape_horizontal(shape: &Shape) -> Shape {
-    let max_x = shape.cells.iter().map(|(x, _)| *x).max().unwrap_or(0);
-    let flipped: Vec<(usize, usize)> = shape.cells.iter().map(|(x, y)| (max_x - x, *y)).collect();
+    let max_x = find_max_x(&shape.cells);
+    let flipped = transform_cells(&shape.cells, |(x, y)| (max_x - x, y));
     let cells = normalize_coordinates(&flipped);
 
     Shape {
