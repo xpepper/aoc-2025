@@ -61,6 +61,27 @@ impl ReactorGraph {
         memo.insert(current.to_string(), count);
         count
     }
+
+    fn count_paths_through_required_nodes(
+        &self,
+        source: &str,
+        target: &str,
+        required: &[&str],
+    ) -> u128 {
+        match required {
+            [] => self.count_paths(source, target),
+            [first, second] => {
+                let paths_first_order = self.count_paths(source, first)
+                    * self.count_paths(first, second)
+                    * self.count_paths(second, target);
+                let paths_second_order = self.count_paths(source, second)
+                    * self.count_paths(second, first)
+                    * self.count_paths(first, target);
+                paths_first_order + paths_second_order
+            }
+            _ => panic!("Part 2 only supports exactly 2 required nodes"),
+        }
+    }
 }
 
 pub fn solve_part1(input: &str) -> u128 {
@@ -70,11 +91,8 @@ pub fn solve_part1(input: &str) -> u128 {
 
 pub fn solve_part2(input: &str) -> u128 {
     let graph = ReactorGraph::from_str(input);
-
-    let from = |a: &str, b: &str| graph.count_paths(a, b);
-
-    from("svr", "dac") * from("dac", "fft") * from("fft", "out")
-        + from("svr", "fft") * from("fft", "dac") * from("dac", "out")
+    let required_nodes = ["dac", "fft"];
+    graph.count_paths_through_required_nodes("svr", "out", &required_nodes)
 }
 
 #[cfg(test)]
