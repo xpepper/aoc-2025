@@ -4,6 +4,9 @@
 use std::time::Instant;
 
 use day12::solver::{solve_region, solve_puzzle};
+use day12::shapes::{ShapeFactory};
+use day12::grid::{BitPackedGrid};
+use day12::{GridPosition};
 
 /// Test framework helper for measuring performance
 pub struct PerformanceTimer {
@@ -136,31 +139,143 @@ mod failing_tests {
 
     // User Story 2 Tests - These MUST FAIL before implementation
     #[test]
-    #[ignore] // Remove ignore when ready to run
     fn test_all_six_shapes_rotation_flipping() {
-        // TODO: Test all 6 standard present shapes with rotation/flipping
-        // This test should verify each shape generates correct orientations
+        // Test all 6 standard present shapes with rotation/flipping
+        let shapes = ShapeFactory::create_all_shapes();
+        assert_eq!(shapes.len(), 6, "Should have exactly 6 shapes");
 
-        // Placeholder - this will be implemented
-        assert!(false, "Shape rotation/flipping not implemented yet");
+        // Test each shape generates transformations correctly
+        for (shape_index, shape) in shapes.iter().enumerate() {
+            assert!(shape.transformation_count() >= 1,
+                   "Shape {} should have at least 1 transformation", shape_index);
+
+            // Verify all transformations are valid
+            for (trans_index, transformation) in shape.transformations.iter().enumerate() {
+                assert!(!transformation.cells.is_empty(),
+                       "Shape {} transformation {} should have cells", shape_index, trans_index);
+
+                assert!(transformation.width > 0 && transformation.height > 0,
+                       "Shape {} transformation {} should have valid dimensions", shape_index, trans_index);
+            }
+        }
+
+        // Test specific shape properties
+        let line_shape = &shapes[0]; // Shape 0: Line
+        assert!(line_shape.transformation_count() >= 2,
+               "Line should have at least 2 orientations (horizontal/vertical)");
+
+        let square_shape = &shapes[3]; // Shape 3: Square
+        // All transformations of square should be equivalent
+        if square_shape.transformation_count() > 1 {
+            let first_cells = &square_shape.get_transformation(0).unwrap().cells;
+            for i in 1..square_shape.transformation_count() {
+                let transform = square_shape.get_transformation(i).unwrap();
+                assert_eq!(transform.cells, *first_cells,
+                          "All square transformations should be identical");
+            }
+        }
     }
 
     #[test]
-    #[ignore] // Remove ignore when ready to run
     fn test_overlap_detection() {
-        // TODO: Test that overlapping '#' cells are rejected
+        // Test that overlapping '#' cells are rejected using BitPackedGrid
+        let mut grid = BitPackedGrid::new(4, 4).expect("4x4 grid should be valid");
 
-        // Placeholder - this will be implemented
-        assert!(false, "Overlap detection not implemented yet");
+        // Get a simple shape (single cell shape for easy testing)
+        let single_cell_shape = ShapeFactory::create_shape(day12::ShapeIndex(5));
+        let transformation = single_cell_shape.get_transformation(0).unwrap();
+
+        // Test 1: Should be able to place first shape
+        let pos1 = GridPosition::new(1, 1);
+        assert!(grid.can_place_transformation(&transformation.cells, pos1),
+               "Should be able to place first shape at (1,1)");
+
+        // Place the first shape
+        grid.place_transformation(&transformation.cells, pos1);
+        assert!(grid.is_occupied(pos1), "Position (1,1) should now be occupied");
+
+        // Test 2: Should reject overlapping placement
+        let pos2 = GridPosition::new(1, 1); // Same position
+        assert!(!grid.can_place_transformation(&transformation.cells, pos2),
+               "Should reject overlapping placement at same position");
+
+        // Test 3: Should accept non-overlapping placement
+        let pos3 = GridPosition::new(2, 2);
+        assert!(grid.can_place_transformation(&transformation.cells, pos3),
+               "Should accept non-overlapping placement at (2,2)");
+
+        // Test 4: Test with larger shape (2x2 square) - should fail due to overlap at (1,1)
+        let square_shape = ShapeFactory::create_shape(day12::ShapeIndex(3));
+        let square_transform = square_shape.get_transformation(0).unwrap();
+
+        let square_pos_overlap = GridPosition::new(0, 0); // This would overlap with cell at (1,1)
+        assert!(!grid.can_place_transformation(&square_transform.cells, square_pos_overlap),
+               "Square at (0,0) should overlap with single cell at (1,1)");
+
+        // Test 5: Square should fit without overlap at (2,0)
+        let square_pos_no_overlap = GridPosition::new(2, 0);
+        assert!(grid.can_place_transformation(&square_transform.cells, square_pos_no_overlap),
+               "Square at (2,0) should not overlap with single cell at (1,1)");
+
+        // Place the square successfully
+        grid.place_transformation(&square_transform.cells, square_pos_no_overlap);
+
+        // Test 6: Another square should now overlap at the same position
+        assert!(!grid.can_place_transformation(&square_transform.cells, square_pos_no_overlap),
+               "Should reject overlapping square placement at same position");
+
+        // Test 7: Test bounds checking - square at (3,0) would exceed bounds
+        let out_of_bounds_pos = GridPosition::new(3, 0);
+        assert!(!grid.can_place_transformation(&square_transform.cells, out_of_bounds_pos),
+               "Should reject placement that would exceed grid bounds");
     }
 
     #[test]
-    #[ignore] // Remove ignore when ready to run
     fn test_transformation_deduplication() {
-        // TODO: Test that duplicate transformations are eliminated
+        // Test that duplicate transformations are eliminated
+        let shapes = ShapeFactory::create_all_shapes();
 
-        // Placeholder - this will be implemented
-        assert!(false, "Transformation deduplication not implemented yet");
+        // Test square shape - should have exactly 1 unique transformation
+        let square_shape = &shapes[3]; // Shape 3: Square
+        assert_eq!(square_shape.transformation_count(), 1,
+                  "Square shape should have exactly 1 unique transformation after deduplication");
+
+        // Test line shape - should have exactly 2 unique transformations (horizontal and vertical)
+        let line_shape = &shapes[0]; // Shape 0: Line
+        let line_transformations = line_shape.transformation_count();
+        assert!(line_transformations >= 2, "Line should have at least 2 orientations");
+
+        // Verify all transformations of the same shape are actually different
+        let mut unique_cell_patterns = std::collections::HashSet::new();
+        for transformation in &line_shape.transformations {
+            let pattern = format!("{:?}", transformation.cells);
+            assert!(!unique_cell_patterns.contains(&pattern),
+                   "Found duplicate transformation pattern: {:?}", pattern);
+            unique_cell_patterns.insert(pattern);
+        }
+
+        // Test that each shape transformation has consistent cell ordering
+        for shape in &shapes {
+            for transformation in &shape.transformations {
+                // Cells should be in row-major order (y first, then x)
+                for i in 1..transformation.cells.len() {
+                    let prev = &transformation.cells[i-1];
+                    let curr = &transformation.cells[i];
+                    assert!(
+                        prev.y < curr.y || (prev.y == curr.y && prev.x <= curr.x),
+                        "Cells should be in row-major order: {:?} -> {:?}",
+                        prev, curr
+                    );
+                }
+            }
+        }
+
+        // Test transformation count is reasonable (should be <= 8 for any shape)
+        for shape in &shapes {
+            assert!(shape.transformation_count() <= 8,
+                   "Shape {} should have at most 8 unique transformations (4 rotations × 2 flips), got {}",
+                   shape.index.0, shape.transformation_count());
+        }
     }
 
     // User Story 3 Tests - These MUST FAIL before implementation
