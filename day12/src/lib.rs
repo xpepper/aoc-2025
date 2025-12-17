@@ -391,8 +391,9 @@ pub fn solve_puzzle(input: &str) -> usize {
 
 pub fn solve() {
     let input = include_str!("../puzzle-input.txt");
+    println!("Starting puzzle solve...");
     let result = solve_puzzle(input);
-    println!("{}", result);
+    println!("Solution: {}", result);
 }
 
 #[cfg(test)]
