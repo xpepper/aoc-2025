@@ -1,5 +1,5 @@
-use day12::solve;
-
 fn main() {
-    solve();
+    let input = include_str!("../puzzle-input.txt");
+    let result = day12::solve_puzzle(&input);
+    println!("{}", result);
 }
