@@ -47,6 +47,12 @@ pub struct ShapeInstance {
 
 impl OptimizedSolver {
     /// Create new solver for region dimensions with dynamic shape definitions
+    ///
+    /// # Errors
+    /// Returns `ParseError` if grid dimensions are invalid or grid creation fails
+    ///
+    /// # Panics
+    /// Panics if a required shape definition is not found in `shape_definitions`
     pub fn new(
         width: usize,
         height: usize,
@@ -155,7 +161,7 @@ impl OptimizedSolver {
 
         // Try transformations in order of fit quality (intelligent ordering)
         let mut transformations = shape.transformations.clone();
-        self.order_transformations_by_fit(&mut transformations);
+        Self::order_transformations_by_fit(&mut transformations);
 
         // Try each transformation at each valid position
         for transformation in &transformations {
@@ -210,10 +216,7 @@ impl OptimizedSolver {
     }
 
     /// Order transformations by fit quality (min-fit heuristic)
-    fn order_transformations_by_fit(
-        &self,
-        transformations: &mut Vec<crate::shapes::ShapeTransformation>,
-    ) {
+    fn order_transformations_by_fit(transformations: &mut [crate::shapes::ShapeTransformation]) {
         // Sort by area (smaller shapes first for better pruning)
         transformations.sort_by_key(super::shapes::ShapeTransformation::area);
     }
@@ -337,11 +340,11 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
         let shape_parts: Vec<&str> = shapes_part.split(',').collect();
 
         for shape_part in shape_parts {
-            let shape_part = shape_part.trim();
+            let trimmed_part = shape_part.trim();
             if shape_part.is_empty() {
                 continue;
             }
-            let shape_spec: Vec<&str> = shape_part.split(':').collect();
+            let shape_spec: Vec<&str> = trimmed_part.split(':').collect();
 
             if shape_spec.len() != 2 {
                 return Err(ParseError::InvalidShapeFormat(format!(
@@ -377,7 +380,10 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
     })
 }
 
-/// Solve a single region packing problem with optimized solver (using `ShapeFactory` for backward compatibility)
+/// Solve a single region packing problem with optimized solver (using ShapeFactory for backward compatibility)
+///
+/// # Errors
+/// Returns `ParseError` if region parsing or solver creation fails
 pub fn solve_region(input: &str) -> SolveResult {
     use crate::shapes::ShapeFactory;
 
@@ -401,7 +407,10 @@ pub fn solve_region(input: &str) -> SolveResult {
     Ok(solver.solve())
 }
 
-/// Count solvable regions in complete puzzle input (using `ShapeFactory` for backward compatibility)
+/// Count solvable regions in complete puzzle input (using ShapeFactory for backward compatibility)
+///
+/// # Errors
+/// Returns error string if region parsing or solver creation fails
 pub fn solve_puzzle(input: &str) -> Result<usize, String> {
     use crate::shapes::ShapeFactory;
 

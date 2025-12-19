@@ -2,7 +2,15 @@
 // ABOUTME: Implements bit-packed grid and optimized algorithms for Day 12 challenge
 
 #![warn(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::cast_precision_loss,
+    clippy::implicit_hasher,
+    clippy::doc_markdown,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::unused_self
+)]
 
 pub mod aoc_parser;
 pub mod cache;

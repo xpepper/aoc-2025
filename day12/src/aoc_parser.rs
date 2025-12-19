@@ -25,6 +25,7 @@ pub struct AocRegion {
 }
 
 /// Parser for `AoC` Day 12 format
+#[derive(Default)]
 pub struct AocParser {
     shapes: Vec<AocShape>,
 }
@@ -33,10 +34,13 @@ impl AocParser {
     /// Create new parser
     #[must_use]
     pub fn new() -> Self {
-        Self { shapes: Vec::new() }
+        Self::default()
     }
 
-    /// Parse the complete `AoC` format input
+    /// Parse the complete AoC format input
+    ///
+    /// # Errors
+    /// Returns `ParseError` if shape definitions or region specifications are invalid
     pub fn parse(&mut self, input: &str) -> Result<Vec<AocRegion>, ParseError> {
         let lines: Vec<&str> = input.lines().collect();
 
@@ -50,26 +54,25 @@ impl AocParser {
             }
 
             // Check if this is a shape definition (ends with ':')
-            if let Some(index_str) = line.strip_suffix(':') {
-                if let Ok(index) = index_str.parse::<usize>()
-                    && index <= 5
-                {
-                    // Parse this shape
+            if let Some(index_str) = line.strip_suffix(':')
+                && let Ok(index) = index_str.parse::<usize>()
+                && index <= 5
+            {
+                // Parse this shape
+                i += 1;
+                let mut shape_lines = Vec::new();
+                while i < lines.len() && !lines[i].trim().is_empty() {
+                    shape_lines.push(lines[i].trim());
                     i += 1;
-                    let mut shape_lines = Vec::new();
-                    while i < lines.len() && !lines[i].trim().is_empty() {
-                        shape_lines.push(lines[i].trim());
-                        i += 1;
-                    }
-
-                    if !shape_lines.is_empty() {
-                        let shape = self.parse_shape_grid(index, &shape_lines)?;
-                        self.shapes.push(shape);
-                    }
-                    // Skip the empty line after shape
-                    i += 1;
-                    continue;
                 }
+
+                if !shape_lines.is_empty() {
+                    let shape = self.parse_shape_grid(index, &shape_lines)?;
+                    self.shapes.push(shape);
+                }
+                // Skip the empty line after shape
+                i += 1;
+                continue;
             }
 
             // If we get here and don't have 6 shapes yet, it's an error
@@ -128,7 +131,7 @@ impl AocParser {
         }
 
         // Normalize cells to start at (0,0)
-        let normalized_cells = self.normalize_cells(cells);
+        let normalized_cells = Self::normalize_cells(cells);
 
         Ok(AocShape {
             index: ShapeIndex(index),
@@ -139,7 +142,7 @@ impl AocParser {
     }
 
     /// Normalize cells to have (0,0) as top-left corner
-    fn normalize_cells(&self, cells: Vec<Cell>) -> Vec<Cell> {
+    fn normalize_cells(cells: Vec<Cell>) -> Vec<Cell> {
         if cells.is_empty() {
             return cells;
         }
@@ -154,6 +157,7 @@ impl AocParser {
     }
 
     /// Parse region definitions
+    #[allow(clippy::unused_self)]
     fn parse_regions(&self, lines: &[&str]) -> Result<Vec<AocRegion>, ParseError> {
         let mut regions = Vec::new();
 
@@ -253,7 +257,10 @@ impl AocParser {
     }
 }
 
-/// Solve the complete `AoC` puzzle
+/// Solve the complete AoC puzzle
+///
+/// # Errors
+/// Returns `ParseError` if input parsing fails or solver creation fails
 pub fn solve_aoc_puzzle(input: &str) -> Result<usize, ParseError> {
     let mut parser = AocParser::new();
     let regions = parser.parse(input)?;
@@ -321,6 +328,10 @@ pub fn format_region_for_solver(region: &AocRegion) -> String {
 }
 
 /// Solve a single region using our optimized solver with dynamic shapes
+/// Solve a region with provided shape definitions
+///
+/// # Errors
+/// Returns `ParseError` if solver creation fails
 pub fn solve_region_with_shapes(
     region: &AocRegion,
     shape_definitions: &HashMap<ShapeIndex, Shape>,
@@ -338,6 +349,10 @@ pub fn solve_region_with_shapes(
 }
 
 /// Solve a single region using our optimized solver
+/// Solve a region from input string using optimized solver
+///
+/// # Errors
+/// Returns `ParseError` if region parsing or solver creation fails
 pub fn solve_region_optimized(input: &str) -> Result<bool, crate::parser::ParseError> {
     crate::solver::solve_region(input)
 }

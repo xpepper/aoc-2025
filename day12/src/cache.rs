@@ -102,19 +102,19 @@ impl ZobristHasher {
     /// Create new hasher for grid dimensions
     #[must_use]
     pub fn new(width: usize, height: usize) -> Self {
-        let mut rng_state = 123456789u64; // Simple PRNG seed
+        let mut rng_state = 123_456_789_u64; // Simple PRNG seed
         let mut table = Vec::with_capacity(width * height);
 
         // Generate random 64-bit values for each cell position
         for _ in 0..(width * height) {
-            rng_state = rng_state.wrapping_mul(1103515245).wrapping_add(12345);
+            rng_state = rng_state.wrapping_mul(1_103_515_245).wrapping_add(12_345);
             table.push(rng_state);
         }
 
         // Generate hashes for shape types (0-5)
         let mut shape_hashes = Vec::with_capacity(6);
         for _ in 0..6 {
-            rng_state = rng_state.wrapping_mul(1103515245).wrapping_add(12345);
+            rng_state = rng_state.wrapping_mul(1_103_515_245).wrapping_add(12_345);
             shape_hashes.push(rng_state);
         }
 
@@ -163,17 +163,14 @@ impl ZobristHasher {
 
     /// Incrementally update hash when a cell is toggled
     #[must_use]
-    pub fn toggle_cell(&self, current_hash: u64, x: usize, y: usize, is_occupied: bool) -> u64 {
+    pub fn toggle_cell(&self, current_hash: u64, x: usize, y: usize, _is_occupied: bool) -> u64 {
         if x >= self.width || y >= self.height {
             return current_hash;
         }
 
         let index = y * self.width + x;
-        if is_occupied {
-            current_hash ^ self.table[index]
-        } else {
-            current_hash ^ self.table[index] // XOR is its own inverse
-        }
+        // XOR is its own inverse, so same operation for both cases
+        current_hash ^ self.table[index]
     }
 
     /// Get hash value for a specific shape type
