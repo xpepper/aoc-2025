@@ -82,7 +82,7 @@ impl OptimizedSolver {
             .sum::<usize>();
 
         let grid_capacity = width * height;
-        
+
         // If region is mathematically impossible, we can't solve it
         // This is not an error - it just means the answer is "false"
         let is_impossible = total_required_cells > grid_capacity;
@@ -104,7 +104,7 @@ impl OptimizedSolver {
         if self.is_impossible {
             return false;
         }
-        
+
         self.stats.reset();
         let placed_shapes: Vec<ShapeIndex> = Vec::new();
         self.solve_recursive(0, 0, &placed_shapes)
