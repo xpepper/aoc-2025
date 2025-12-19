@@ -4,8 +4,9 @@
 use crate::cache::{MemoizationCache, SolverStats, ZobristHasher};
 use crate::grid::BitPackedGrid;
 use crate::parser::ParseError;
-use crate::shapes::ShapeFactory;
+use crate::shapes::Shape;
 use crate::{GridPosition, ShapeIndex};
+use std::collections::HashMap;
 
 /// Optimized solver result type
 pub type SolveResult = Result<bool, ParseError>;
@@ -29,9 +30,11 @@ pub struct Region {
 pub struct OptimizedSolver {
     grid: BitPackedGrid,
     shapes: Vec<ShapeInstance>,
+    shape_definitions: HashMap<ShapeIndex, Shape>,
     cache: MemoizationCache,
     hasher: ZobristHasher,
     stats: SolverStats,
+    is_impossible: bool, // True if region is mathematically impossible
 }
 
 /// Shape instance for tracking placements
@@ -43,11 +46,12 @@ pub struct ShapeInstance {
 }
 
 impl OptimizedSolver {
-    /// Create new solver for region dimensions
+    /// Create new solver for region dimensions with dynamic shape definitions
     pub fn new(
         width: usize,
         height: usize,
         requirements: Vec<ShapeRequirement>,
+        shape_definitions: HashMap<ShapeIndex, Shape>,
     ) -> Result<Self, ParseError> {
         // Validate grid dimensions
         crate::validate_grid_dimensions(width, height)
@@ -70,30 +74,37 @@ impl OptimizedSolver {
         let total_required_cells = shapes
             .iter()
             .map(|instance| {
-                let shape = ShapeFactory::create_shape(instance.shape_index);
-                shape.cells.len() * instance.count
+                let shape = shape_definitions.get(&instance.shape_index)
+                    .expect("Shape definition not found");
+                let cells = shape.cells.len() * instance.count;
+                cells
             })
             .sum::<usize>();
 
         let grid_capacity = width * height;
-        if total_required_cells > grid_capacity {
-            return Err(ParseError::InvalidShapeFormat(format!(
-                "Too many shapes: require {} cells, grid has {}",
-                total_required_cells, grid_capacity
-            )));
-        }
+        
+        // If region is mathematically impossible, we can't solve it
+        // This is not an error - it just means the answer is "false"
+        let is_impossible = total_required_cells > grid_capacity;
 
         Ok(Self {
             grid,
             shapes,
+            shape_definitions,
             cache: MemoizationCache::new(10000),
             hasher: ZobristHasher::new(width, height),
             stats: SolverStats::new(),
+            is_impossible,
         })
     }
 
     /// Solve the packing problem with optimizations
     pub fn solve(&mut self) -> bool {
+        // If region is mathematically impossible, return false immediately
+        if self.is_impossible {
+            return false;
+        }
+        
         self.stats.reset();
         let placed_shapes: Vec<ShapeIndex> = Vec::new();
         self.solve_recursive(0, 0, &placed_shapes)
@@ -135,8 +146,11 @@ impl OptimizedSolver {
         // Copy shape index before mutable operations
         let shape_index = instance.shape_index;
 
-        // Get shape and try all transformations
-        let shape = ShapeFactory::create_shape(shape_index);
+        // Get shape from definitions and try all transformations
+        let shape = self
+            .shape_definitions
+            .get(&shape_index)
+            .expect("Shape definition not found");
 
         // Try transformations in order of fit quality (intelligent ordering)
         let mut transformations = shape.transformations.clone();
@@ -362,16 +376,42 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
     })
 }
 
-/// Solve a single region packing problem with optimized solver
+/// Solve a single region packing problem with optimized solver (using ShapeFactory for backward compatibility)
 pub fn solve_region(input: &str) -> SolveResult {
+    use crate::shapes::ShapeFactory;
+
     let region = parse_region_input(input)?;
-    let mut solver = OptimizedSolver::new(region.width, region.height, region.requirements)?;
+
+    // Build shape definitions from ShapeFactory for backward compatibility
+    let mut shape_definitions = HashMap::new();
+    for i in 0..=5 {
+        let shape_index = ShapeIndex(i);
+        let shape = ShapeFactory::create_shape(shape_index);
+        shape_definitions.insert(shape_index, shape);
+    }
+
+    let mut solver = OptimizedSolver::new(
+        region.width,
+        region.height,
+        region.requirements,
+        shape_definitions,
+    )?;
 
     Ok(solver.solve())
 }
 
-/// Count solvable regions in complete puzzle input
+/// Count solvable regions in complete puzzle input (using ShapeFactory for backward compatibility)
 pub fn solve_puzzle(input: &str) -> Result<usize, String> {
+    use crate::shapes::ShapeFactory;
+
+    // Build shape definitions from ShapeFactory
+    let mut shape_definitions = HashMap::new();
+    for i in 0..=5 {
+        let shape_index = ShapeIndex(i);
+        let shape = ShapeFactory::create_shape(shape_index);
+        shape_definitions.insert(shape_index, shape);
+    }
+
     let lines: Vec<&str> = input.trim().lines().collect();
     let mut count = 0;
 
@@ -380,10 +420,19 @@ pub fn solve_puzzle(input: &str) -> Result<usize, String> {
             continue;
         }
 
-        match solve_region(line) {
-            Ok(true) => count += 1,
-            Ok(false) => {} // Unsolvable region
-            Err(e) => return Err(format!("Failed to solve region '{}': {}", line.trim(), e)),
+        let region = parse_region_input(line)
+            .map_err(|e| format!("Failed to parse region '{}': {}", line.trim(), e))?;
+
+        let mut solver = OptimizedSolver::new(
+            region.width,
+            region.height,
+            region.requirements,
+            shape_definitions.clone(),
+        )
+        .map_err(|e| format!("Failed to create solver for region '{}': {}", line.trim(), e))?;
+
+        if solver.solve() {
+            count += 1;
         }
     }
 
@@ -416,12 +465,22 @@ mod tests {
 
     #[test]
     fn test_optimized_solver_creation() {
+        use crate::shapes::ShapeFactory;
+
         let requirements = vec![ShapeRequirement {
             shape_index: ShapeIndex(4),
             count: 2,
         }];
 
-        let solver = OptimizedSolver::new(4, 4, requirements);
+        // Build shape definitions from ShapeFactory
+        let mut shape_definitions = HashMap::new();
+        for i in 0..=5 {
+            let shape_index = ShapeIndex(i);
+            let shape = ShapeFactory::create_shape(shape_index);
+            shape_definitions.insert(shape_index, shape);
+        }
+
+        let solver = OptimizedSolver::new(4, 4, requirements, shape_definitions);
         assert!(solver.is_ok());
     }
 

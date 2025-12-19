@@ -2,8 +2,10 @@
 // ABOUTME: Handles shape definitions and region specifications from puzzle-input.txt
 
 use crate::parser::ParseError;
+use crate::shapes::Shape;
 use crate::solver::ShapeRequirement;
 use crate::{Cell, ShapeIndex};
+use std::collections::HashMap;
 
 /// Represents a loaded shape from AoC format
 #[derive(Debug, Clone)]
@@ -237,6 +239,17 @@ impl AocParser {
     pub fn get_shapes(&self) -> &[AocShape] {
         &self.shapes
     }
+
+    /// Convert parsed AocShapes to Shape format for solver
+    pub fn get_shape_definitions(&self) -> HashMap<ShapeIndex, Shape> {
+        self.shapes
+            .iter()
+            .map(|aoc_shape| {
+                let shape = Shape::new(aoc_shape.index, aoc_shape.cells.clone());
+                (aoc_shape.index, shape)
+            })
+            .collect()
+    }
 }
 
 /// Solve the complete AoC puzzle
@@ -244,14 +257,14 @@ pub fn solve_aoc_puzzle(input: &str) -> Result<usize, ParseError> {
     let mut parser = AocParser::new();
     let regions = parser.parse(input)?;
 
+    // Get shape definitions from parsed shapes
+    let shape_definitions = parser.get_shape_definitions();
+
     let mut solvable_count = 0;
 
     for (i, region) in regions.iter().enumerate() {
-        // Convert region to our solver format
-        let solver_input = format_region_for_solver(region);
-
-        // Use our optimized solver
-        match solve_region_optimized(&solver_input) {
+        // Use our optimized solver with dynamic shapes
+        match solve_region_with_shapes(region, &shape_definitions) {
             Ok(true) => {
                 solvable_count += 1;
                 println!(
@@ -303,6 +316,23 @@ pub fn format_region_for_solver(region: &AocRegion) -> String {
     }
 
     result
+}
+
+/// Solve a single region using our optimized solver with dynamic shapes
+pub fn solve_region_with_shapes(
+    region: &AocRegion,
+    shape_definitions: &HashMap<ShapeIndex, Shape>,
+) -> Result<bool, crate::parser::ParseError> {
+    use crate::solver::OptimizedSolver;
+
+    let mut solver = OptimizedSolver::new(
+        region.width,
+        region.height,
+        region.shape_requirements.clone(),
+        shape_definitions.clone(),
+    )?;
+
+    Ok(solver.solve())
 }
 
 /// Solve a single region using our optimized solver
