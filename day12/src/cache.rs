@@ -16,6 +16,7 @@ pub struct MemoizationCache {
 
 impl MemoizationCache {
     /// Create a new cache with specified size limit
+    #[must_use]
     pub fn new(max_size: usize) -> Self {
         Self {
             cache: HashMap::with_capacity(max_size),
@@ -26,6 +27,7 @@ impl MemoizationCache {
     }
 
     /// Get cached result for a grid state
+    #[must_use]
     pub fn get(&self, hash: u64) -> Option<bool> {
         self.cache.get(&hash).copied()
     }
@@ -41,11 +43,13 @@ impl MemoizationCache {
     }
 
     /// Check if hash exists in cache
+    #[must_use]
     pub fn contains(&self, hash: u64) -> bool {
         self.cache.contains_key(&hash)
     }
 
     /// Get cache hit rate (0.0 to 1.0)
+    #[must_use]
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
         if total == 0 {
@@ -56,6 +60,7 @@ impl MemoizationCache {
     }
 
     /// Get performance statistics
+    #[must_use]
     pub fn stats(&self) -> (u64, u64, f64) {
         (self.hits, self.misses, self.hit_rate())
     }
@@ -78,6 +83,7 @@ impl MemoizationCache {
     }
 
     /// Get current cache size
+    #[must_use]
     pub fn size(&self) -> usize {
         self.cache.len()
     }
@@ -94,6 +100,7 @@ pub struct ZobristHasher {
 
 impl ZobristHasher {
     /// Create new hasher for grid dimensions
+    #[must_use]
     pub fn new(width: usize, height: usize) -> Self {
         let mut rng_state = 123456789u64; // Simple PRNG seed
         let mut table = Vec::with_capacity(width * height);
@@ -120,6 +127,7 @@ impl ZobristHasher {
     }
 
     /// Compute hash for current grid state
+    #[must_use]
     pub fn compute_hash(&self, grid: &BitPackedGrid) -> u64 {
         let mut hash = 0u64;
 
@@ -137,6 +145,7 @@ impl ZobristHasher {
     }
 
     /// Compute hash for grid with additional shape context
+    #[must_use]
     pub fn compute_hash_with_shapes(
         &self,
         grid: &BitPackedGrid,
@@ -153,6 +162,7 @@ impl ZobristHasher {
     }
 
     /// Incrementally update hash when a cell is toggled
+    #[must_use]
     pub fn toggle_cell(&self, current_hash: u64, x: usize, y: usize, is_occupied: bool) -> u64 {
         if x >= self.width || y >= self.height {
             return current_hash;
@@ -167,6 +177,7 @@ impl ZobristHasher {
     }
 
     /// Get hash value for a specific shape type
+    #[must_use]
     pub fn shape_hash(&self, shape_index: ShapeIndex) -> u64 {
         self.shape_hashes[shape_index.0.min(5)] // Safety: max 5
     }
@@ -189,6 +200,7 @@ pub struct SolverStats {
 }
 
 impl SolverStats {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -213,6 +225,7 @@ impl SolverStats {
         self.solutions_found += 1;
     }
 
+    #[must_use]
     pub fn cache_hit_rate(&self) -> f64 {
         let total = self.cache_hits + self.cache_misses;
         if total == 0 {
@@ -222,6 +235,7 @@ impl SolverStats {
         }
     }
 
+    #[must_use]
     pub fn prune_rate(&self) -> f64 {
         if self.nodes_explored == 0 {
             0.0

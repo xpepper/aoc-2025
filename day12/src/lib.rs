@@ -34,6 +34,7 @@ pub struct Cell {
 }
 
 impl Cell {
+    #[must_use]
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
@@ -47,6 +48,7 @@ pub struct GridPosition {
 }
 
 impl GridPosition {
+    #[must_use]
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
@@ -66,10 +68,12 @@ pub struct RegionDimensions {
 }
 
 impl RegionDimensions {
+    #[must_use]
     pub fn new(width: usize, height: usize) -> Self {
         Self { width, height }
     }
 
+    #[must_use]
     pub fn area(&self) -> usize {
         self.width * self.height
     }

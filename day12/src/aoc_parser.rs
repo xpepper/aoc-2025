@@ -7,7 +7,7 @@ use crate::solver::ShapeRequirement;
 use crate::{Cell, ShapeIndex};
 use std::collections::HashMap;
 
-/// Represents a loaded shape from AoC format
+/// Represents a loaded shape from `AoC` format
 #[derive(Debug, Clone)]
 pub struct AocShape {
     pub index: ShapeIndex,
@@ -16,7 +16,7 @@ pub struct AocShape {
     pub height: usize,
 }
 
-/// Represents a region specification from AoC format
+/// Represents a region specification from `AoC` format
 #[derive(Debug, Clone)]
 pub struct AocRegion {
     pub width: usize,
@@ -24,18 +24,19 @@ pub struct AocRegion {
     pub shape_requirements: Vec<ShapeRequirement>,
 }
 
-/// Parser for AoC Day 12 format
+/// Parser for `AoC` Day 12 format
 pub struct AocParser {
     shapes: Vec<AocShape>,
 }
 
 impl AocParser {
     /// Create new parser
+    #[must_use]
     pub fn new() -> Self {
         Self { shapes: Vec::new() }
     }
 
-    /// Parse the complete AoC format input
+    /// Parse the complete `AoC` format input
     pub fn parse(&mut self, input: &str) -> Result<Vec<AocRegion>, ParseError> {
         let lines: Vec<&str> = input.lines().collect();
 
@@ -49,34 +50,32 @@ impl AocParser {
             }
 
             // Check if this is a shape definition (ends with ':')
-            if line.ends_with(':') {
-                let index_str = &line[..line.len() - 1];
-                if let Ok(index) = index_str.parse::<usize>() {
-                    if index <= 5 {
-                        // Parse this shape
+            if let Some(index_str) = line.strip_suffix(':') {
+                if let Ok(index) = index_str.parse::<usize>()
+                    && index <= 5
+                {
+                    // Parse this shape
+                    i += 1;
+                    let mut shape_lines = Vec::new();
+                    while i < lines.len() && !lines[i].trim().is_empty() {
+                        shape_lines.push(lines[i].trim());
                         i += 1;
-                        let mut shape_lines = Vec::new();
-                        while i < lines.len() && !lines[i].trim().is_empty() {
-                            shape_lines.push(lines[i].trim());
-                            i += 1;
-                        }
-
-                        if !shape_lines.is_empty() {
-                            let shape = self.parse_shape_grid(index, &shape_lines)?;
-                            self.shapes.push(shape);
-                        }
-                        // Skip the empty line after shape
-                        i += 1;
-                        continue;
                     }
+
+                    if !shape_lines.is_empty() {
+                        let shape = self.parse_shape_grid(index, &shape_lines)?;
+                        self.shapes.push(shape);
+                    }
+                    // Skip the empty line after shape
+                    i += 1;
+                    continue;
                 }
             }
 
             // If we get here and don't have 6 shapes yet, it's an error
             if self.shapes.len() < 6 {
                 return Err(ParseError::InvalidShapeFormat(format!(
-                    "Expected shape definition, found: '{}'",
-                    line
+                    "Expected shape definition, found: '{line}'"
                 )));
             }
         }
@@ -164,13 +163,12 @@ impl AocParser {
                 continue;
             }
 
-            println!("DEBUG: Processing region line: '{}'", line);
+            println!("DEBUG: Processing region line: '{line}'");
 
             let parts: Vec<&str> = line.split(':').collect();
             if parts.len() != 2 {
                 return Err(ParseError::InvalidShapeFormat(format!(
-                    "Invalid region format: '{}'",
-                    line
+                    "Invalid region format: '{line}'"
                 )));
             }
 
@@ -185,7 +183,7 @@ impl AocParser {
                 )));
             }
 
-            println!("DEBUG: Dim parts: {:?}", dim_parts);
+            println!("DEBUG: Dim parts: {dim_parts:?}");
 
             let width = dim_parts[0].parse::<usize>().map_err(|e| {
                 ParseError::InvalidShapeFormat(format!("Invalid width '{}': {}", dim_parts[0], e))
@@ -194,10 +192,10 @@ impl AocParser {
                 ParseError::InvalidShapeFormat(format!("Invalid height '{}': {}", dim_parts[1], e))
             })?;
 
-            println!("DEBUG: Parsed dimensions: {}x{}", width, height);
+            println!("DEBUG: Parsed dimensions: {width}x{height}");
 
             // Parse shape counts
-            let count_parts: Vec<&str> = parts[1].trim().split_whitespace().collect();
+            let count_parts: Vec<&str> = parts[1].split_whitespace().collect();
             if count_parts.len() != 6 {
                 return Err(ParseError::InvalidShapeFormat(format!(
                     "Expected 6 shape counts, got {}: '{}'",
@@ -231,16 +229,19 @@ impl AocParser {
     }
 
     /// Get shape by index
+    #[must_use]
     pub fn get_shape(&self, index: ShapeIndex) -> Option<&AocShape> {
         self.shapes.iter().find(|s| s.index == index)
     }
 
     /// Get all shapes
+    #[must_use]
     pub fn get_shapes(&self) -> &[AocShape] {
         &self.shapes
     }
 
-    /// Convert parsed AocShapes to Shape format for solver
+    /// Convert parsed `AocShapes` to Shape format for solver
+    #[must_use]
     pub fn get_shape_definitions(&self) -> HashMap<ShapeIndex, Shape> {
         self.shapes
             .iter()
@@ -252,7 +253,7 @@ impl AocParser {
     }
 }
 
-/// Solve the complete AoC puzzle
+/// Solve the complete `AoC` puzzle
 pub fn solve_aoc_puzzle(input: &str) -> Result<usize, ParseError> {
     let mut parser = AocParser::new();
     let regions = parser.parse(input)?;
@@ -298,7 +299,8 @@ pub fn solve_aoc_puzzle(input: &str) -> Result<usize, ParseError> {
     Ok(solvable_count)
 }
 
-/// Convert AocRegion to our solver's input format
+/// Convert `AocRegion` to our solver's input format
+#[must_use]
 pub fn format_region_for_solver(region: &AocRegion) -> String {
     let mut result = format!("{}x{}:", region.width, region.height);
 

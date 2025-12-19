@@ -43,9 +43,9 @@ pub enum RegionError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseError::InvalidShapeFormat(msg) => write!(f, "Invalid shape format: {}", msg),
-            ParseError::InvalidDimensions(msg) => write!(f, "Invalid dimensions: {}", msg),
-            ParseError::InvalidCounts(msg) => write!(f, "Invalid counts: {}", msg),
+            ParseError::InvalidShapeFormat(msg) => write!(f, "Invalid shape format: {msg}"),
+            ParseError::InvalidDimensions(msg) => write!(f, "Invalid dimensions: {msg}"),
+            ParseError::InvalidCounts(msg) => write!(f, "Invalid counts: {msg}"),
         }
     }
 }
@@ -53,9 +53,9 @@ impl std::fmt::Display for ParseError {
 impl std::fmt::Display for GridError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            GridError::TooLarge(width, height) => write!(f, "Grid too large: {}x{}", width, height),
+            GridError::TooLarge(width, height) => write!(f, "Grid too large: {width}x{height}"),
             GridError::InvalidDimensions(width, height) => {
-                write!(f, "Invalid dimensions: {}x{}", width, height)
+                write!(f, "Invalid dimensions: {width}x{height}")
             }
         }
     }
@@ -66,7 +66,7 @@ impl std::fmt::Display for PlacementError {
         match self {
             PlacementError::OutOfBounds => write!(f, "Position out of bounds"),
             PlacementError::Overlap => write!(f, "Shape would overlap existing cells"),
-            PlacementError::InvalidShape(id) => write!(f, "Invalid shape index: {}", id),
+            PlacementError::InvalidShape(id) => write!(f, "Invalid shape index: {id}"),
         }
     }
 }
@@ -75,10 +75,10 @@ impl std::fmt::Display for RegionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RegionError::InvalidDimensions(width, height) => {
-                write!(f, "Invalid region dimensions: {}x{}", width, height)
+                write!(f, "Invalid region dimensions: {width}x{height}")
             }
             RegionError::InvalidShapeQuantity(id, qty) => {
-                write!(f, "Invalid quantity for shape {}: {}", id, qty)
+                write!(f, "Invalid quantity for shape {id}: {qty}")
             }
         }
     }

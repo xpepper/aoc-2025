@@ -20,7 +20,7 @@ impl BitPackedGrid {
             .map_err(|_| crate::parser::GridError::TooLarge(width, height))?;
 
         // Calculate number of 64-bit words needed per row
-        let words_per_row = (width + 63) / 64;
+        let words_per_row = width.div_ceil(64);
         let total_cells = words_per_row * height;
 
         Ok(BitPackedGrid {
@@ -33,6 +33,7 @@ impl BitPackedGrid {
 
     /// Check if a position is occupied
     #[inline]
+    #[must_use]
     pub fn is_occupied(&self, pos: GridPosition) -> bool {
         if pos.x >= self.width || pos.y >= self.height {
             return false; // Out of bounds treated as empty
@@ -63,6 +64,7 @@ impl BitPackedGrid {
 
     /// Check if a transformation can be placed at the given position
     #[inline]
+    #[must_use]
     pub fn can_place_transformation(&self, cells: &[Cell], pos: GridPosition) -> bool {
         for cell in cells {
             let absolute_x = pos.x + cell.x;
@@ -118,11 +120,13 @@ impl BitPackedGrid {
     }
 
     /// Get grid dimensions
+    #[must_use]
     pub fn dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
     }
 
     /// Count total occupied cells
+    #[must_use]
     pub fn occupied_count(&self) -> usize {
         self.cells
             .iter()
@@ -131,6 +135,7 @@ impl BitPackedGrid {
     }
 
     /// Check if grid is completely empty
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.cells.iter().all(|&word| word == 0)
     }

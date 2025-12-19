@@ -74,10 +74,11 @@ impl OptimizedSolver {
         let total_required_cells = shapes
             .iter()
             .map(|instance| {
-                let shape = shape_definitions.get(&instance.shape_index)
+                let shape = shape_definitions
+                    .get(&instance.shape_index)
                     .expect("Shape definition not found");
-                let cells = shape.cells.len() * instance.count;
-                cells
+
+                shape.cells.len() * instance.count
             })
             .sum::<usize>();
 
@@ -214,7 +215,7 @@ impl OptimizedSolver {
         transformations: &mut Vec<crate::shapes::ShapeTransformation>,
     ) {
         // Sort by area (smaller shapes first for better pruning)
-        transformations.sort_by_key(|t| t.area());
+        transformations.sort_by_key(super::shapes::ShapeTransformation::area);
     }
 
     /// Check if transformation can fit anywhere in grid
@@ -287,6 +288,7 @@ impl OptimizedSolver {
     }
 
     /// Get solver statistics
+    #[must_use]
     pub fn get_stats(&self) -> &SolverStats {
         &self.stats
     }
@@ -302,7 +304,7 @@ impl OptimizedSolver {
     }
 }
 
-/// Parse input format: "WxH: shape_id:count, shape_id:count, ..."
+/// Parse input format: "`WxH`: `shape_id:count`, `shape_id:count`, ..."
 fn parse_region_input(input: &str) -> Result<Region, ParseError> {
     let trimmed = input.trim();
 
@@ -343,8 +345,7 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
 
             if shape_spec.len() != 2 {
                 return Err(ParseError::InvalidShapeFormat(format!(
-                    "Invalid shape format: '{}'",
-                    shape_part
+                    "Invalid shape format: '{shape_part}'"
                 )));
             }
 
@@ -376,7 +377,7 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
     })
 }
 
-/// Solve a single region packing problem with optimized solver (using ShapeFactory for backward compatibility)
+/// Solve a single region packing problem with optimized solver (using `ShapeFactory` for backward compatibility)
 pub fn solve_region(input: &str) -> SolveResult {
     use crate::shapes::ShapeFactory;
 
@@ -400,7 +401,7 @@ pub fn solve_region(input: &str) -> SolveResult {
     Ok(solver.solve())
 }
 
-/// Count solvable regions in complete puzzle input (using ShapeFactory for backward compatibility)
+/// Count solvable regions in complete puzzle input (using `ShapeFactory` for backward compatibility)
 pub fn solve_puzzle(input: &str) -> Result<usize, String> {
     use crate::shapes::ShapeFactory;
 
@@ -429,7 +430,13 @@ pub fn solve_puzzle(input: &str) -> Result<usize, String> {
             region.requirements,
             shape_definitions.clone(),
         )
-        .map_err(|e| format!("Failed to create solver for region '{}': {}", line.trim(), e))?;
+        .map_err(|e| {
+            format!(
+                "Failed to create solver for region '{}': {}",
+                line.trim(),
+                e
+            )
+        })?;
 
         if solver.solve() {
             count += 1;

@@ -26,6 +26,7 @@ pub struct ShapeTransformation {
 
 impl Shape {
     /// Create a new shape from a set of cells
+    #[must_use]
     pub fn new(index: ShapeIndex, cells: Vec<Cell>) -> Self {
         let (width, height) = Self::calculate_bounds(&cells);
         let mut shape = Shape {
@@ -179,11 +180,13 @@ impl Shape {
     }
 
     /// Get transformation count
+    #[must_use]
     pub fn transformation_count(&self) -> usize {
         self.transformations.len()
     }
 
     /// Get transformation by index
+    #[must_use]
     pub fn get_transformation(&self, index: usize) -> Option<&ShapeTransformation> {
         self.transformations.get(index)
     }
@@ -191,26 +194,31 @@ impl Shape {
 
 impl ShapeTransformation {
     /// Get the cells of this transformation
+    #[must_use]
     pub fn cells(&self) -> &[Cell] {
         &self.cells
     }
 
     /// Get the dimensions of this transformation
+    #[must_use]
     pub fn dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
     }
 
     /// Get the bit pattern for fast collision detection
+    #[must_use]
     pub fn bit_pattern(&self) -> u64 {
         self.bit_pattern
     }
 
     /// Check if this transformation fits within given bounds
+    #[must_use]
     pub fn fits_in_bounds(&self, width: usize, height: usize) -> bool {
         self.width <= width && self.height <= height
     }
 
     /// Get the area (number of cells) of this transformation
+    #[must_use]
     pub fn area(&self) -> usize {
         self.cells.len()
     }
@@ -221,6 +229,7 @@ pub struct ShapeFactory;
 
 impl ShapeFactory {
     /// Create all 6 standard present shapes
+    #[must_use]
     pub fn create_all_shapes() -> Vec<Shape> {
         (0..6)
             .map(|i| ShapeFactory::create_shape(ShapeIndex(i)))
@@ -228,6 +237,7 @@ impl ShapeFactory {
     }
 
     /// Create a specific shape by index
+    #[must_use]
     pub fn create_shape(index: ShapeIndex) -> Shape {
         match index.0 {
             0 => ShapeFactory::create_shape_0(), // Straight vertical
