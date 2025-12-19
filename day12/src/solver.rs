@@ -1,11 +1,11 @@
 // ABOUTME: Core optimized solver for present packing optimization
 // ABOUTME: Implements high-performance backtracking with memoization and intelligent search
 
+use crate::cache::{MemoizationCache, SolverStats, ZobristHasher};
 use crate::grid::BitPackedGrid;
-use crate::shapes::ShapeFactory;
-use crate::cache::{MemoizationCache, ZobristHasher, SolverStats};
-use crate::{GridPosition, ShapeIndex};
 use crate::parser::ParseError;
+use crate::shapes::ShapeFactory;
+use crate::{GridPosition, ShapeIndex};
 
 /// Optimized solver result type
 pub type SolveResult = Result<bool, ParseError>;
@@ -44,7 +44,11 @@ pub struct ShapeInstance {
 
 impl OptimizedSolver {
     /// Create new solver for region dimensions
-    pub fn new(width: usize, height: usize, requirements: Vec<ShapeRequirement>) -> Result<Self, ParseError> {
+    pub fn new(
+        width: usize,
+        height: usize,
+        requirements: Vec<ShapeRequirement>,
+    ) -> Result<Self, ParseError> {
         // Validate grid dimensions
         crate::validate_grid_dimensions(width, height)
             .map_err(|_| ParseError::InvalidShapeFormat("Invalid grid dimensions".to_string()))?;
@@ -53,7 +57,8 @@ impl OptimizedSolver {
             .map_err(|_| ParseError::InvalidShapeFormat("Grid creation failed".to_string()))?;
 
         // Create shape instances from requirements
-        let shapes: Vec<ShapeInstance> = requirements.into_iter()
+        let shapes: Vec<ShapeInstance> = requirements
+            .into_iter()
             .map(|req| ShapeInstance {
                 shape_index: req.shape_index,
                 count: req.count,
@@ -62,7 +67,8 @@ impl OptimizedSolver {
             .collect();
 
         // Validate total cells
-        let total_required_cells = shapes.iter()
+        let total_required_cells = shapes
+            .iter()
             .map(|instance| {
                 let shape = ShapeFactory::create_shape(instance.shape_index);
                 shape.cells.len() * instance.count
@@ -71,9 +77,10 @@ impl OptimizedSolver {
 
         let grid_capacity = width * height;
         if total_required_cells > grid_capacity {
-            return Err(ParseError::InvalidShapeFormat(
-                format!("Too many shapes: require {} cells, grid has {}", total_required_cells, grid_capacity)
-            ));
+            return Err(ParseError::InvalidShapeFormat(format!(
+                "Too many shapes: require {} cells, grid has {}",
+                total_required_cells, grid_capacity
+            )));
         }
 
         Ok(Self {
@@ -93,7 +100,12 @@ impl OptimizedSolver {
     }
 
     /// Recursive solver with memoization and pruning
-    fn solve_recursive(&mut self, shape_idx: usize, hash: u64, placed_shapes: &[ShapeIndex]) -> bool {
+    fn solve_recursive(
+        &mut self,
+        shape_idx: usize,
+        hash: u64,
+        placed_shapes: &[ShapeIndex],
+    ) -> bool {
         self.stats.record_node();
 
         // Check cache first
@@ -183,7 +195,10 @@ impl OptimizedSolver {
     }
 
     /// Order transformations by fit quality (min-fit heuristic)
-    fn order_transformations_by_fit(&self, transformations: &mut Vec<crate::shapes::ShapeTransformation>) {
+    fn order_transformations_by_fit(
+        &self,
+        transformations: &mut Vec<crate::shapes::ShapeTransformation>,
+    ) {
         // Sort by area (smaller shapes first for better pruning)
         transformations.sort_by_key(|t| t.area());
     }
@@ -194,7 +209,10 @@ impl OptimizedSolver {
     }
 
     /// Find all valid positions for a transformation
-    fn find_valid_positions(&self, transformation: &crate::shapes::ShapeTransformation) -> Vec<GridPosition> {
+    fn find_valid_positions(
+        &self,
+        transformation: &crate::shapes::ShapeTransformation,
+    ) -> Vec<GridPosition> {
         let mut positions = Vec::new();
         let max_x = self.grid.width.saturating_sub(transformation.width) + 1;
         let max_y = self.grid.height.saturating_sub(transformation.height) + 1;
@@ -202,7 +220,10 @@ impl OptimizedSolver {
         for y in 0..max_y {
             for x in 0..max_x {
                 let pos = GridPosition::new(x, y);
-                if self.grid.can_place_transformation(&transformation.cells, pos) {
+                if self
+                    .grid
+                    .can_place_transformation(&transformation.cells, pos)
+                {
                     positions.push(pos);
                 }
             }
@@ -212,17 +233,30 @@ impl OptimizedSolver {
     }
 
     /// Place transformation on grid
-    fn place_transformation(&mut self, transformation: &crate::shapes::ShapeTransformation, pos: GridPosition) {
+    fn place_transformation(
+        &mut self,
+        transformation: &crate::shapes::ShapeTransformation,
+        pos: GridPosition,
+    ) {
         self.grid.place_transformation(&transformation.cells, pos);
     }
 
     /// Remove transformation from grid
-    fn remove_transformation(&mut self, transformation: &crate::shapes::ShapeTransformation, pos: GridPosition) {
+    fn remove_transformation(
+        &mut self,
+        transformation: &crate::shapes::ShapeTransformation,
+        pos: GridPosition,
+    ) {
         self.grid.remove_transformation(&transformation.cells, pos);
     }
 
     /// Update hash for shape placement
-    fn update_hash_for_placement(&self, current_hash: u64, transformation: &crate::shapes::ShapeTransformation, pos: GridPosition) -> u64 {
+    fn update_hash_for_placement(
+        &self,
+        current_hash: u64,
+        transformation: &crate::shapes::ShapeTransformation,
+        pos: GridPosition,
+    ) -> u64 {
         let mut new_hash = current_hash;
 
         // Add shape hash
@@ -230,7 +264,9 @@ impl OptimizedSolver {
 
         // Add cell hashes
         for cell in &transformation.cells {
-            new_hash ^= self.hasher.toggle_cell(new_hash, pos.x + cell.x, pos.y + cell.y, true);
+            new_hash ^= self
+                .hasher
+                .toggle_cell(new_hash, pos.x + cell.x, pos.y + cell.y, true);
         }
 
         new_hash
@@ -257,7 +293,8 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
     let trimmed = input.trim();
 
     // Find the first colon that separates dimensions from shape requirements
-    let colon_pos = trimmed.find(':')
+    let colon_pos = trimmed
+        .find(':')
         .ok_or_else(|| ParseError::InvalidShapeFormat("Missing colon separator".to_string()))?;
 
     let (dimensions_part, shapes_part) = trimmed.split_at(colon_pos);
@@ -266,12 +303,16 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
     // Parse dimensions "WxH"
     let dim_parts: Vec<&str> = dimensions_part.trim().split('x').collect();
     if dim_parts.len() != 2 {
-        return Err(ParseError::InvalidShapeFormat("Invalid dimension format".to_string()));
+        return Err(ParseError::InvalidShapeFormat(
+            "Invalid dimension format".to_string(),
+        ));
     }
 
-    let width = dim_parts[0].parse::<usize>()
+    let width = dim_parts[0]
+        .parse::<usize>()
         .map_err(|_| ParseError::InvalidShapeFormat("Invalid width".to_string()))?;
-    let height = dim_parts[1].parse::<usize>()
+    let height = dim_parts[1]
+        .parse::<usize>()
         .map_err(|_| ParseError::InvalidShapeFormat("Invalid height".to_string()))?;
 
     // Parse shape requirements
@@ -287,17 +328,24 @@ fn parse_region_input(input: &str) -> Result<Region, ParseError> {
             let shape_spec: Vec<&str> = shape_part.split(':').collect();
 
             if shape_spec.len() != 2 {
-                return Err(ParseError::InvalidShapeFormat(format!("Invalid shape format: '{}'", shape_part)));
+                return Err(ParseError::InvalidShapeFormat(format!(
+                    "Invalid shape format: '{}'",
+                    shape_part
+                )));
             }
 
-            let shape_id = shape_spec[0].parse::<usize>()
+            let shape_id = shape_spec[0]
+                .parse::<usize>()
                 .map_err(|_| ParseError::InvalidShapeFormat("Invalid shape ID".to_string()))?;
 
             if shape_id > 5 {
-                return Err(ParseError::InvalidShapeFormat("Shape ID must be 0-5".to_string()));
+                return Err(ParseError::InvalidShapeFormat(
+                    "Shape ID must be 0-5".to_string(),
+                ));
             }
 
-            let count = shape_spec[1].parse::<usize>()
+            let count = shape_spec[1]
+                .parse::<usize>()
                 .map_err(|_| ParseError::InvalidShapeFormat("Invalid shape count".to_string()))?;
 
             requirements.push(ShapeRequirement {
@@ -334,7 +382,7 @@ pub fn solve_puzzle(input: &str) -> Result<usize, String> {
 
         match solve_region(line) {
             Ok(true) => count += 1,
-            Ok(false) => {}, // Unsolvable region
+            Ok(false) => {} // Unsolvable region
             Err(e) => return Err(format!("Failed to solve region '{}': {}", line.trim(), e)),
         }
     }
@@ -368,12 +416,10 @@ mod tests {
 
     #[test]
     fn test_optimized_solver_creation() {
-        let requirements = vec![
-            ShapeRequirement {
-                shape_index: ShapeIndex(4),
-                count: 2,
-            }
-        ];
+        let requirements = vec![ShapeRequirement {
+            shape_index: ShapeIndex(4),
+            count: 2,
+        }];
 
         let solver = OptimizedSolver::new(4, 4, requirements);
         assert!(solver.is_ok());

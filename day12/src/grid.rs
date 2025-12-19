@@ -1,24 +1,23 @@
 // ABOUTME: High-performance bit-packed grid for present packing optimization
 // ABOUTME: Provides fast cell operations using 64-bit word manipulation
 
-use crate::{GridPosition, Cell};
+use crate::{Cell, GridPosition};
 
 /// High-performance grid representation using 64-bit words
 #[derive(Debug, Clone)]
 pub struct BitPackedGrid {
-    pub cells: Vec<u64>,           // Bit-packed grid cells
+    pub cells: Vec<u64>, // Bit-packed grid cells
     pub width: usize,
     pub height: usize,
-    pub words_per_row: usize,      // Pre-computed for efficiency
+    pub words_per_row: usize, // Pre-computed for efficiency
 }
 
 impl BitPackedGrid {
     /// Create a new bit-packed grid with the given dimensions
     pub fn new(width: usize, height: usize) -> Result<Self, crate::parser::GridError> {
-        // Ensure grid fits in 64 bits as per validation rules
-        if width * height > 64 {
-            return Err(crate::parser::GridError::TooLarge(width, height));
-        }
+        // Validate dimensions using shared validation function
+        crate::validate_grid_dimensions(width, height)
+            .map_err(|_| crate::parser::GridError::TooLarge(width, height))?;
 
         // Calculate number of 64-bit words needed per row
         let words_per_row = (width + 63) / 64;
@@ -73,7 +72,10 @@ impl BitPackedGrid {
                 return false; // Out of bounds
             }
 
-            let check_pos = GridPosition { x: absolute_x, y: absolute_y };
+            let check_pos = GridPosition {
+                x: absolute_x,
+                y: absolute_y,
+            };
             if self.is_occupied(check_pos) {
                 return false; // Cell already occupied
             }
@@ -89,7 +91,10 @@ impl BitPackedGrid {
             let absolute_y = pos.y + cell.y;
 
             if absolute_x < self.width && absolute_y < self.height {
-                let set_pos = GridPosition { x: absolute_x, y: absolute_y };
+                let set_pos = GridPosition {
+                    x: absolute_x,
+                    y: absolute_y,
+                };
                 self.set_occupied(set_pos, true);
             }
         }
@@ -103,7 +108,10 @@ impl BitPackedGrid {
             let absolute_y = pos.y + cell.y;
 
             if absolute_x < self.width && absolute_y < self.height {
-                let remove_pos = GridPosition { x: absolute_x, y: absolute_y };
+                let remove_pos = GridPosition {
+                    x: absolute_x,
+                    y: absolute_y,
+                };
                 self.set_occupied(remove_pos, false);
             }
         }
@@ -116,7 +124,10 @@ impl BitPackedGrid {
 
     /// Count total occupied cells
     pub fn occupied_count(&self) -> usize {
-        self.cells.iter().map(|word| word.count_ones() as usize).sum()
+        self.cells
+            .iter()
+            .map(|word| word.count_ones() as usize)
+            .sum()
     }
 
     /// Check if grid is completely empty

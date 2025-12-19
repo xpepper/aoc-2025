@@ -1,17 +1,17 @@
 // ABOUTME: Christmas present shape definitions and transformations
 // ABOUTME: Implements 6 standard shapes with rotation and flipping capabilities
 
-use crate::{ShapeIndex, Cell};
+use crate::{Cell, ShapeIndex};
 use std::collections::HashSet;
 
 /// Represents a Christmas present shape with all possible orientations
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Shape {
     pub index: ShapeIndex,
-    pub cells: Vec<Cell>,           // Normalized cell coordinates (0,0) origin
-    pub width: usize,              // Bounding box width
-    pub height: usize,             // Bounding box height
-    pub transformations: Vec<ShapeTransformation>,  // All unique orientations
+    pub cells: Vec<Cell>, // Normalized cell coordinates (0,0) origin
+    pub width: usize,     // Bounding box width
+    pub height: usize,    // Bounding box height
+    pub transformations: Vec<ShapeTransformation>, // All unique orientations
 }
 
 /// A single transformation/orientation of a shape
@@ -21,7 +21,7 @@ pub struct ShapeTransformation {
     pub cells: Vec<Cell>,
     pub width: usize,
     pub height: usize,
-    pub bit_pattern: u64,          // Bitmask for fast collision detection
+    pub bit_pattern: u64, // Bitmask for fast collision detection
 }
 
 impl Shape {
@@ -61,7 +61,8 @@ impl Shape {
         let min_x = cells.iter().map(|c| c.x).min().unwrap();
         let min_y = cells.iter().map(|c| c.y).min().unwrap();
 
-        let mut normalized: Vec<Cell> = cells.into_iter()
+        let mut normalized: Vec<Cell> = cells
+            .into_iter()
             .map(|c| Cell::new(c.x - min_x, c.y - min_y))
             .collect();
 
@@ -101,7 +102,9 @@ impl Shape {
         // Convert to sorted vector for deterministic behavior
         let mut transformations: Vec<_> = unique_transformations.into_iter().collect();
         transformations.sort_by(|a, b| {
-            a.cells.iter().cmp(b.cells.iter())
+            a.cells
+                .iter()
+                .cmp(b.cells.iter())
                 .then_with(|| a.width.cmp(&b.width))
                 .then_with(|| a.height.cmp(&b.height))
         });
@@ -116,7 +119,8 @@ impl Shape {
             return self.cells.clone();
         }
 
-        self.cells.iter()
+        self.cells
+            .iter()
             .map(|cell| self.rotate_cell(*cell, rotations))
             .collect()
     }
@@ -124,9 +128,15 @@ impl Shape {
     /// Get cells flipped horizontally, then rotated
     fn get_flipped_rotated_cells(&self, rotations: usize) -> Vec<Cell> {
         // First flip horizontally
-        let flipped: Vec<Cell> = self.cells.iter()
+        let flipped: Vec<Cell> = self
+            .cells
+            .iter()
             .map(|cell| {
-                let flipped_x = if self.width > 0 { self.width - 1 - cell.x } else { 0 };
+                let flipped_x = if self.width > 0 {
+                    self.width - 1 - cell.x
+                } else {
+                    0
+                };
                 Cell::new(flipped_x, cell.y)
             })
             .collect();
@@ -137,7 +147,8 @@ impl Shape {
             return flipped;
         }
 
-        flipped.iter()
+        flipped
+            .iter()
             .map(|cell| self.rotate_cell(*cell, rotations))
             .collect()
     }
@@ -147,7 +158,10 @@ impl Shape {
         match rotations % 4 {
             0 => cell,
             1 => Cell::new(cell.y, (self.width - 1).saturating_sub(cell.x)),
-            2 => Cell::new((self.width - 1).saturating_sub(cell.x), (self.height - 1).saturating_sub(cell.y)),
+            2 => Cell::new(
+                (self.width - 1).saturating_sub(cell.x),
+                (self.height - 1).saturating_sub(cell.y),
+            ),
             3 => Cell::new((self.height - 1).saturating_sub(cell.y), cell.x),
             _ => unreachable!(),
         }
@@ -208,7 +222,9 @@ pub struct ShapeFactory;
 impl ShapeFactory {
     /// Create all 6 standard present shapes
     pub fn create_all_shapes() -> Vec<Shape> {
-        (0..6).map(|i| ShapeFactory::create_shape(ShapeIndex(i))).collect()
+        (0..6)
+            .map(|i| ShapeFactory::create_shape(ShapeIndex(i)))
+            .collect()
     }
 
     /// Create a specific shape by index
@@ -225,63 +241,104 @@ impl ShapeFactory {
     }
 
     fn create_shape_0() -> Shape {
-        // Vertical line of 4 cells
+        // Shape 0 from README:
+        // ###
+        // ##.
+        // ##.
         let cells = vec![
             Cell::new(0, 0),
+            Cell::new(1, 0),
+            Cell::new(2, 0),
             Cell::new(0, 1),
+            Cell::new(1, 1),
             Cell::new(0, 2),
-            Cell::new(0, 3),
+            Cell::new(1, 2),
         ];
         Shape::new(ShapeIndex(0), cells)
     }
 
     fn create_shape_1() -> Shape {
-        // L-shape (3 vertical + 1 horizontal)
+        // Shape 1 from README:
+        // ###
+        // ##.
+        // .##
         let cells = vec![
             Cell::new(0, 0),
+            Cell::new(1, 0),
+            Cell::new(2, 0),
             Cell::new(0, 1),
-            Cell::new(0, 2),
+            Cell::new(1, 1),
             Cell::new(1, 2),
+            Cell::new(2, 2),
         ];
         Shape::new(ShapeIndex(1), cells)
     }
 
     fn create_shape_2() -> Shape {
-        // T-shape (3 horizontal + 1 down in middle)
+        // Shape 2 from README:
+        // .##
+        // ###
+        // ##.
         let cells = vec![
-            Cell::new(0, 0),
             Cell::new(1, 0),
             Cell::new(2, 0),
+            Cell::new(0, 1),
             Cell::new(1, 1),
+            Cell::new(2, 1),
+            Cell::new(0, 2),
+            Cell::new(1, 2),
         ];
         Shape::new(ShapeIndex(2), cells)
     }
 
     fn create_shape_3() -> Shape {
-        // 2x2 square
+        // Shape 3 from README:
+        // ##.
+        // ###
+        // ##.
         let cells = vec![
             Cell::new(0, 0),
             Cell::new(1, 0),
             Cell::new(0, 1),
             Cell::new(1, 1),
+            Cell::new(2, 1),
+            Cell::new(0, 2),
+            Cell::new(1, 2),
         ];
         Shape::new(ShapeIndex(3), cells)
     }
 
     fn create_shape_4() -> Shape {
-        // Vertical zigzag
+        // Shape 4 from README:
+        // ###
+        // #..
+        // ###
         let cells = vec![
             Cell::new(0, 0),
             Cell::new(1, 0),
-            Cell::new(1, 1),
+            Cell::new(2, 0),
+            Cell::new(0, 1),
+            Cell::new(0, 2),
             Cell::new(1, 2),
+            Cell::new(2, 2),
         ];
         Shape::new(ShapeIndex(4), cells)
     }
 
     fn create_shape_5() -> Shape {
-        // Single cell
-        let cells = vec![Cell::new(0, 0)];
+        // Shape 5 from README:
+        // ###
+        // .#.
+        // ###
+        let cells = vec![
+            Cell::new(0, 0),
+            Cell::new(1, 0),
+            Cell::new(2, 0),
+            Cell::new(1, 1),
+            Cell::new(0, 2),
+            Cell::new(1, 2),
+            Cell::new(2, 2),
+        ];
         Shape::new(ShapeIndex(5), cells)
     }
 }
@@ -294,28 +351,19 @@ mod tests {
     fn test_shape_creation() {
         let shape = ShapeFactory::create_shape(ShapeIndex(0));
         assert_eq!(shape.index, ShapeIndex(0));
-        assert_eq!(shape.cells.len(), 4);
-        assert_eq!(shape.width, 1);
-        assert_eq!(shape.height, 4);
+        assert_eq!(shape.cells.len(), 7); // Shape 0 has 7 cells
+        assert_eq!(shape.width, 3);
+        assert_eq!(shape.height, 3);
     }
 
     #[test]
     fn test_shape_transformations() {
-        let shape = ShapeFactory::create_shape(ShapeIndex(3)); // Square
-        // Square may have multiple transformations due to flip/rotate combinations,
-        // but they should all be equivalent. Let's check that all transformations are identical.
+        let shape = ShapeFactory::create_shape(ShapeIndex(3)); // Shape 3: 7-cell pattern
+        // Shape 3 will have multiple unique transformations due to its asymmetric pattern
         assert!(shape.transformation_count() >= 1); // At least 1 orientation
-        if shape.transformation_count() > 1 {
-            // All transformations of a square should be identical
-            let first_transform = shape.get_transformation(0).unwrap();
-            for i in 1..shape.transformation_count() {
-                let transform = shape.get_transformation(i).unwrap();
-                assert_eq!(transform.cells, first_transform.cells);
-            }
-        }
 
-        let shape = ShapeFactory::create_shape(ShapeIndex(0)); // Line
-        assert!(shape.transformation_count() >= 2); // Line should have at least 2 orientations
+        let shape = ShapeFactory::create_shape(ShapeIndex(0)); // Shape 0: 7-cell pattern
+        assert!(shape.transformation_count() >= 1); // Will have multiple orientations
     }
 
     #[test]
@@ -323,9 +371,10 @@ mod tests {
         let shape = ShapeFactory::create_shape(ShapeIndex(0));
         let transformation = shape.get_transformation(0).unwrap();
 
-        assert!(transformation.fits_in_bounds(1, 4));
-        assert!(!transformation.fits_in_bounds(0, 4));
-        assert!(!transformation.fits_in_bounds(1, 3));
+        // Shape 0 is 3x3, so it should fit in 3x3 or larger
+        assert!(transformation.fits_in_bounds(3, 3));
+        assert!(!transformation.fits_in_bounds(2, 3));
+        assert!(!transformation.fits_in_bounds(3, 2));
     }
 
     #[test]

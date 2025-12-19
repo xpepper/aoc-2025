@@ -1,16 +1,16 @@
 // ABOUTME: High-performance memoization and Zobrist hashing for solver optimization
 // ABOUTME: Implements fast state hashing and subproblem result caching
 
-use crate::{GridPosition, ShapeIndex};
 use crate::grid::BitPackedGrid;
+use crate::{GridPosition, ShapeIndex};
 use std::collections::HashMap;
 
 /// Memoization cache for storing solved subproblems
 #[derive(Debug, Clone)]
 pub struct MemoizationCache {
-    cache: HashMap<u64, bool>,    // Grid hash -> solvable result
-    max_size: usize,              // Memory limit
-    hits: u64,                    // Performance counters
+    cache: HashMap<u64, bool>, // Grid hash -> solvable result
+    max_size: usize,           // Memory limit
+    hits: u64,                 // Performance counters
     misses: u64,
 }
 
@@ -86,8 +86,8 @@ impl MemoizationCache {
 /// Zobrist hasher for fast incremental grid state hashing
 #[derive(Debug, Clone)]
 pub struct ZobristHasher {
-    table: Vec<u64>,          // Random hash table for cells
-    shape_hashes: Vec<u64>,   // Hash values for each shape type
+    table: Vec<u64>,        // Random hash table for cells
+    shape_hashes: Vec<u64>, // Hash values for each shape type
     width: usize,
     height: usize,
 }
@@ -137,7 +137,11 @@ impl ZobristHasher {
     }
 
     /// Compute hash for grid with additional shape context
-    pub fn compute_hash_with_shapes(&self, grid: &BitPackedGrid, placed_shapes: &[ShapeIndex]) -> u64 {
+    pub fn compute_hash_with_shapes(
+        &self,
+        grid: &BitPackedGrid,
+        placed_shapes: &[ShapeIndex],
+    ) -> u64 {
         let mut hash = self.compute_hash(grid);
 
         // Include shape types in hash for better cache discrimination

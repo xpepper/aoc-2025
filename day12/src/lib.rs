@@ -4,6 +4,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 
+pub mod aoc_parser;
 pub mod cache;
 pub mod grid;
 pub mod parser;
@@ -86,7 +87,10 @@ pub fn validate_grid_dimensions(width: usize, height: usize) -> GridResult<()> {
         return Err(GridError::InvalidDimensions(width, height));
     }
 
-    if width * height > 64 {
+    // Note: BitPackedGrid uses Vec<u64> so can handle arbitrary sizes
+    // Each u64 stores up to 64 cells, so total cells can be > 64
+    // We only need to ensure dimensions are reasonable
+    if width > 1000 || height > 1000 {
         return Err(GridError::TooLarge(width, height));
     }
 
@@ -136,6 +140,7 @@ mod tests {
     fn test_validate_grid_dimensions_invalid() {
         assert!(validate_grid_dimensions(0, 5).is_err());
         assert!(validate_grid_dimensions(5, 0).is_err());
-        assert!(validate_grid_dimensions(8, 9).is_err()); // 72 cells > 64
+        assert!(validate_grid_dimensions(1001, 5).is_err()); // width > 1000
+        assert!(validate_grid_dimensions(5, 1001).is_err()); // height > 1000
     }
 }

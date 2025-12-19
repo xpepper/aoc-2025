@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Skill(superpowers:using-superpowers)",
-      "Skill(superpowers:test-driven-development)"
+      "Skill(superpowers:test-driven-development)",
+      "mcp__plugin_perplexity_perplexity__perplexity_research"
     ],
     "deny": [],
     "ask": []

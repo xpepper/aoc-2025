@@ -31,19 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Required Compliance Gates
-
-- [ ] **TDD Compliance**: Implementation follows strict Red-Green-Refactor cycle with tests written first
-- [ ] **Rust Idioms**: Code uses standard library traits (FromStr, Display, From/Into) and follows naming conventions
-- [ ] **Domain Modeling**: Domain concepts are explicit in the code rather than using raw primitives
-- [ ] **Incremental Simplicity**: Solution prioritizes readability over cleverness, with small focused functions
-- [ ] **Challenge Structure**: Each daily challenge is an independent package with proper documentation
-
-### Complexity Justification (if any gates fail)
-
-| Violated Principle | Justification Required | Simpler Alternative Considered |
-|-------------------|----------------------|------------------------------|
-| [List any violations] | [Why this complexity is necessary] | [Why simpler approach was rejected] |
+[Gates determined based on constitution file]
 
 ## Project Structure
 

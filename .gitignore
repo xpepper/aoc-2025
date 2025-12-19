@@ -1,5 +1,10 @@
 # Rust build artifacts
 target/
+debug/
+release/
+*.rs.bk
+*.rlib
+*.prof*
 
 # Cargo.lock for libraries (uncomment if you want to track it for binaries)
 # Cargo.lock
@@ -14,3 +19,7 @@ target/
 # OS files
 .DS_Store
 Thumbs.db
+*.tmp
+*.log
+.env*
+coverage/
